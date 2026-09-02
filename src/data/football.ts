@@ -71,7 +71,7 @@ export const teams: Team[] = [
   t("t1", "Manchester United", "MUN", "England", "l1", "#DA291C", "WWLDW"),
   t("t2", "Arsenal", "ARS", "England", "l1", "#EF0107", "WWWDL"),
   t("t3", "Liverpool", "LIV", "England", "l1", "#C8102E", "WDWWW"),
-  t("t4", "Manchester City", "MCI", "England", "l1", "WWWWD".length ? "#6CABDD" : "", "WWWWD"),
+  t("t4", "Manchester City", "MCI", "England", "l1", "#6CABDD", "WWWWD"),
   t("t5", "Chelsea", "CHE", "England", "l1", "#034694", "LWDWL"),
   t("t6", "Tottenham Hotspur", "TOT", "England", "l1", "#132257", "WLWDW"),
   t("t7", "Newcastle United", "NEW", "England", "l1", "#241F20", "DWLWW"),
