@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bell, Coins, History, LogOut, Shield, User } from "lucide-react";
+import { Bell, Coins, History, LogOut, Shield, User, Users2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/common/States";
@@ -58,6 +58,7 @@ function ProfilePage() {
           { to: "/points", label: "Virtual points", icon: Coins },
           { to: "/history", label: "Prediction history", icon: History },
           { to: "/notifications", label: "Notifications", icon: Bell },
+          { to: "/partners", label: "Partners & referrals", icon: Users2 },
         ].map((item) => (
           <Link
             key={item.to}
