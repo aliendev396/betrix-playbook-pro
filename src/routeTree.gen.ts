@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LiveRouteImport } from './routes/live'
 import { Route as MatchesRouteImport } from './routes/matches'
+import { Route as PredictionsRouteImport } from './routes/predictions'
 import { Route as LeaguesIndexRouteImport } from './routes/leagues.index'
 import { Route as LeaguesSlugRouteImport } from './routes/leagues.$slug'
 import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
@@ -29,6 +30,11 @@ const LiveRoute = LiveRouteImport.update({
 const MatchesRoute = MatchesRouteImport.update({
   id: '/matches',
   path: '/matches',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PredictionsRoute = PredictionsRouteImport.update({
+  id: '/predictions',
+  path: '/predictions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeaguesIndexRoute = LeaguesIndexRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
+  '/predictions': typeof PredictionsRoute
   '/leagues/$slug': typeof LeaguesSlugRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/leagues/': typeof LeaguesIndexRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
+  '/predictions': typeof PredictionsRoute
   '/leagues/$slug': typeof LeaguesSlugRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/leagues': typeof LeaguesIndexRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
+  '/predictions': typeof PredictionsRoute
   '/leagues/$slug': typeof LeaguesSlugRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/leagues/': typeof LeaguesIndexRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/live'
     | '/matches'
+    | '/predictions'
     | '/leagues/$slug'
     | '/match/$matchId'
     | '/leagues/'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/live'
     | '/matches'
+    | '/predictions'
     | '/leagues/$slug'
     | '/match/$matchId'
     | '/leagues'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/live'
     | '/matches'
+    | '/predictions'
     | '/leagues/$slug'
     | '/match/$matchId'
     | '/leagues/'
@@ -103,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LiveRoute: typeof LiveRoute
   MatchesRoute: typeof MatchesRoute
+  PredictionsRoute: typeof PredictionsRoute
   LeaguesSlugRoute: typeof LeaguesSlugRoute
   MatchMatchIdRoute: typeof MatchMatchIdRoute
   LeaguesIndexRoute: typeof LeaguesIndexRoute
@@ -129,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/matches'
       fullPath: '/matches'
       preLoaderRoute: typeof MatchesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/predictions': {
+      id: '/predictions'
+      path: '/predictions'
+      fullPath: '/predictions'
+      preLoaderRoute: typeof PredictionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/leagues/': {
@@ -159,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LiveRoute: LiveRoute,
   MatchesRoute: MatchesRoute,
+  PredictionsRoute: PredictionsRoute,
   LeaguesSlugRoute: LeaguesSlugRoute,
   MatchMatchIdRoute: MatchMatchIdRoute,
   LeaguesIndexRoute: LeaguesIndexRoute,
