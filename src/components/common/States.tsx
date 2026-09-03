@@ -66,16 +66,21 @@ export function ErrorState({ onRetry, message }: { onRetry?: () => void; message
 
 export function SectionHeading({
   title,
+  subtitle,
   action,
   className,
 }: {
   title: string;
+  subtitle?: string;
   action?: ReactNode;
   className?: string;
 }) {
   return (
-    <div className={cn("mb-3 flex items-center justify-between gap-3", className)}>
-      <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">{title}</h2>
+    <div className={cn("mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3", className)}>
+      <div className="min-w-0">
+        <h2 className="truncate text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">{title}</h2>
+        {subtitle ? <p className="mt-0.5 truncate text-xs text-muted-foreground/80">{subtitle}</p> : null}
+      </div>
       {action}
     </div>
   );
