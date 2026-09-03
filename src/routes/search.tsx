@@ -54,9 +54,9 @@ function SearchPage() {
       </div>
 
       {!results ? (
-        <EmptyState title="Start typing" description="Enter at least 2 characters to search." icon={SearchIcon} />
+        <EmptyState title="Start typing" description="Enter at least 2 characters to search." icon={<SearchIcon className="h-5 w-5" />} />
       ) : results.teams.length + results.leagues.length + results.matches.length === 0 ? (
-        <EmptyState title="No results" description={`Nothing matched "${q}".`} icon={SearchIcon} />
+        <EmptyState title="No results" description={`Nothing matched "${q}".`} icon={<SearchIcon className="h-5 w-5" />} />
       ) : (
         <div className="space-y-5">
           {results.matches.length > 0 ? (

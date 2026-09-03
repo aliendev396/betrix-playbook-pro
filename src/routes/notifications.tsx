@@ -35,7 +35,7 @@ function NotificationsPage() {
       </div>
 
       {notifications.length === 0 ? (
-        <EmptyState title="Nothing here yet" description="Results and match alerts will show up here." icon={Bell} />
+        <EmptyState title="Nothing here yet" description="Results and match alerts will show up here." icon={<Bell className="h-5 w-5" />} />
       ) : (
         <div className="space-y-2">
           {notifications.map((n) => {
