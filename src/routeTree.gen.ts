@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LiveRouteImport } from './routes/live'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as LeaguesIndexRouteImport } from './routes/leagues.index'
+import { Route as LeaguesSlugRouteImport } from './routes/leagues.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,17 +35,24 @@ const LeaguesIndexRoute = LeaguesIndexRouteImport.update({
   path: '/leagues/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeaguesSlugRoute = LeaguesSlugRouteImport.update({
+  id: '/leagues/$slug',
+  path: '/leagues/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
+  '/leagues/$slug': typeof LeaguesSlugRoute
   '/leagues/': typeof LeaguesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
+  '/leagues/$slug': typeof LeaguesSlugRoute
   '/leagues': typeof LeaguesIndexRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
+  '/leagues/$slug': typeof LeaguesSlugRoute
   '/leagues/': typeof LeaguesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/live' | '/matches' | '/leagues/'
+  fullPaths: '/' | '/live' | '/matches' | '/leagues/$slug' | '/leagues/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/live' | '/matches' | '/leagues'
-  id: '__root__' | '/' | '/live' | '/matches' | '/leagues/'
+  to: '/' | '/live' | '/matches' | '/leagues/$slug' | '/leagues'
+  id: '__root__' | '/' | '/live' | '/matches' | '/leagues/$slug' | '/leagues/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LiveRoute: typeof LiveRoute
   MatchesRoute: typeof MatchesRoute
+  LeaguesSlugRoute: typeof LeaguesSlugRoute
   LeaguesIndexRoute: typeof LeaguesIndexRoute
 }
 
@@ -99,6 +109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeaguesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/leagues/$slug': {
+      id: '/leagues/$slug'
+      path: '/leagues/$slug'
+      fullPath: '/leagues/$slug'
+      preLoaderRoute: typeof LeaguesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -106,6 +123,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LiveRoute: LiveRoute,
   MatchesRoute: MatchesRoute,
+  LeaguesSlugRoute: LeaguesSlugRoute,
   LeaguesIndexRoute: LeaguesIndexRoute,
 }
 export const routeTree = rootRouteImport
