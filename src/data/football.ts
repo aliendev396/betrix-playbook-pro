@@ -41,9 +41,9 @@ export interface Match {
   awayId: string;
   kickoff: string; // ISO, server-authoritative in production
   status: MatchStatus;
-  minute?: number;
-  homeScore?: number;
-  awayScore?: number;
+  minute?: number | undefined;
+  homeScore?: number | undefined;
+  awayScore?: number | undefined;
   venue: string;
   markets: Market[];
 }
