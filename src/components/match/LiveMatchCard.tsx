@@ -3,7 +3,7 @@ import { LeagueBadge, TeamCrest } from "@/components/common/TeamCrest";
 import { leagueById, teamById, type Match } from "@/data/football";
 import { cn } from "@/lib/utils";
 
-export function LiveBadge({ minute }: { minute?: number }) {
+export function LiveBadge({ minute }: { minute?: number | undefined }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-live/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-live">
       <span className="live-dot h-1.5 w-1.5 rounded-full bg-live" />
