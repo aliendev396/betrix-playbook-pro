@@ -10,33 +10,102 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LiveRouteImport } from './routes/live'
+import { Route as MatchesRouteImport } from './routes/matches'
+import { Route as LeaguesIndexRouteImport } from './routes/leagues.index'
+import { Route as LeaguesSlugRouteImport } from './routes/leagues.$slug'
+import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LiveRoute = LiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MatchesRoute = MatchesRouteImport.update({
+  id: '/matches',
+  path: '/matches',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaguesIndexRoute = LeaguesIndexRouteImport.update({
+  id: '/leagues/',
+  path: '/leagues/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaguesSlugRoute = LeaguesSlugRouteImport.update({
+  id: '/leagues/$slug',
+  path: '/leagues/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MatchMatchIdRoute = MatchMatchIdRouteImport.update({
+  id: '/match/$matchId',
+  path: '/match/$matchId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/live': typeof LiveRoute
+  '/matches': typeof MatchesRoute
+  '/leagues/$slug': typeof LeaguesSlugRoute
+  '/match/$matchId': typeof MatchMatchIdRoute
+  '/leagues/': typeof LeaguesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/live': typeof LiveRoute
+  '/matches': typeof MatchesRoute
+  '/leagues/$slug': typeof LeaguesSlugRoute
+  '/match/$matchId': typeof MatchMatchIdRoute
+  '/leagues': typeof LeaguesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/live': typeof LiveRoute
+  '/matches': typeof MatchesRoute
+  '/leagues/$slug': typeof LeaguesSlugRoute
+  '/match/$matchId': typeof MatchMatchIdRoute
+  '/leagues/': typeof LeaguesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/live'
+    | '/matches'
+    | '/leagues/$slug'
+    | '/match/$matchId'
+    | '/leagues/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/live'
+    | '/matches'
+    | '/leagues/$slug'
+    | '/match/$matchId'
+    | '/leagues'
+  id:
+    | '__root__'
+    | '/'
+    | '/live'
+    | '/matches'
+    | '/leagues/$slug'
+    | '/match/$matchId'
+    | '/leagues/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LiveRoute: typeof LiveRoute
+  MatchesRoute: typeof MatchesRoute
+  LeaguesSlugRoute: typeof LeaguesSlugRoute
+  MatchMatchIdRoute: typeof MatchMatchIdRoute
+  LeaguesIndexRoute: typeof LeaguesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +117,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/live': {
+      id: '/live'
+      path: '/live'
+      fullPath: '/live'
+      preLoaderRoute: typeof LiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/matches': {
+      id: '/matches'
+      path: '/matches'
+      fullPath: '/matches'
+      preLoaderRoute: typeof MatchesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leagues/': {
+      id: '/leagues/'
+      path: '/leagues'
+      fullPath: '/leagues/'
+      preLoaderRoute: typeof LeaguesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leagues/$slug': {
+      id: '/leagues/$slug'
+      path: '/leagues/$slug'
+      fullPath: '/leagues/$slug'
+      preLoaderRoute: typeof LeaguesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/match/$matchId': {
+      id: '/match/$matchId'
+      path: '/match/$matchId'
+      fullPath: '/match/$matchId'
+      preLoaderRoute: typeof MatchMatchIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LiveRoute: LiveRoute,
+  MatchesRoute: MatchesRoute,
+  LeaguesSlugRoute: LeaguesSlugRoute,
+  MatchMatchIdRoute: MatchMatchIdRoute,
+  LeaguesIndexRoute: LeaguesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
