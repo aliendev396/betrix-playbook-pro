@@ -82,8 +82,10 @@ function ProfilePage() {
       <Button variant="outline" className="w-full gap-2">
         <User className="h-4 w-4" /> Edit profile
       </Button>
-      <Button variant="ghost" className="w-full gap-2 text-muted-foreground">
-        <LogOut className="h-4 w-4" /> Sign out
+      <Button asChild variant="ghost" className="w-full gap-2 text-muted-foreground">
+        <Link to="/auth">
+          <LogOut className="h-4 w-4" /> Sign out
+        </Link>
       </Button>
       <p className="pb-2 text-center text-[11px] text-muted-foreground">
         BETRIX is a free-to-play prediction game using virtual points only.
