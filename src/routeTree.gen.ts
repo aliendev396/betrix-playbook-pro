@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CodeRouteImport } from './routes/code'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as LiveRouteImport } from './routes/live'
 import { Route as MatchesRouteImport } from './routes/matches'
@@ -25,6 +26,11 @@ import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CodeRoute = CodeRouteImport.update({
+  id: '/code',
+  path: '/code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoryRoute = HistoryRouteImport.update({
@@ -85,6 +91,7 @@ const MatchMatchIdRoute = MatchMatchIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/code': typeof CodeRoute
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/code': typeof CodeRoute
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
@@ -114,6 +122,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/code': typeof CodeRoute
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/code'
     | '/history'
     | '/live'
     | '/matches'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/code'
     | '/history'
     | '/live'
     | '/matches'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/code'
     | '/history'
     | '/live'
     | '/matches'
@@ -173,6 +185,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CodeRoute: typeof CodeRoute
   HistoryRoute: typeof HistoryRoute
   LiveRoute: typeof LiveRoute
   MatchesRoute: typeof MatchesRoute
@@ -193,6 +206,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/code': {
+      id: '/code'
+      path: '/code'
+      fullPath: '/code'
+      preLoaderRoute: typeof CodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -277,6 +297,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CodeRoute: CodeRoute,
   HistoryRoute: HistoryRoute,
   LiveRoute: LiveRoute,
   MatchesRoute: MatchesRoute,
