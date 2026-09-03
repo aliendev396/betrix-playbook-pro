@@ -15,6 +15,7 @@ import { Route as LiveRouteImport } from './routes/live'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as PointsRouteImport } from './routes/points'
 import { Route as PredictionsRouteImport } from './routes/predictions'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LeaguesIndexRouteImport } from './routes/leagues.index'
 import { Route as LeaguesSlugRouteImport } from './routes/leagues.$slug'
 import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
@@ -49,6 +50,11 @@ const PredictionsRoute = PredictionsRouteImport.update({
   path: '/predictions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LeaguesIndexRoute = LeaguesIndexRouteImport.update({
   id: '/leagues/',
   path: '/leagues/',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/matches': typeof MatchesRoute
   '/points': typeof PointsRoute
   '/predictions': typeof PredictionsRoute
+  '/profile': typeof ProfileRoute
   '/leagues/$slug': typeof LeaguesSlugRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/leagues/': typeof LeaguesIndexRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/matches': typeof MatchesRoute
   '/points': typeof PointsRoute
   '/predictions': typeof PredictionsRoute
+  '/profile': typeof ProfileRoute
   '/leagues/$slug': typeof LeaguesSlugRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/leagues': typeof LeaguesIndexRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/matches': typeof MatchesRoute
   '/points': typeof PointsRoute
   '/predictions': typeof PredictionsRoute
+  '/profile': typeof ProfileRoute
   '/leagues/$slug': typeof LeaguesSlugRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/leagues/': typeof LeaguesIndexRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/matches'
     | '/points'
     | '/predictions'
+    | '/profile'
     | '/leagues/$slug'
     | '/match/$matchId'
     | '/leagues/'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/matches'
     | '/points'
     | '/predictions'
+    | '/profile'
     | '/leagues/$slug'
     | '/match/$matchId'
     | '/leagues'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/matches'
     | '/points'
     | '/predictions'
+    | '/profile'
     | '/leagues/$slug'
     | '/match/$matchId'
     | '/leagues/'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   MatchesRoute: typeof MatchesRoute
   PointsRoute: typeof PointsRoute
   PredictionsRoute: typeof PredictionsRoute
+  ProfileRoute: typeof ProfileRoute
   LeaguesSlugRoute: typeof LeaguesSlugRoute
   MatchMatchIdRoute: typeof MatchMatchIdRoute
   LeaguesIndexRoute: typeof LeaguesIndexRoute
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PredictionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/leagues/': {
       id: '/leagues/'
       path: '/leagues'
@@ -222,6 +242,7 @@ const rootRouteChildren: RootRouteChildren = {
   MatchesRoute: MatchesRoute,
   PointsRoute: PointsRoute,
   PredictionsRoute: PredictionsRoute,
+  ProfileRoute: ProfileRoute,
   LeaguesSlugRoute: LeaguesSlugRoute,
   MatchMatchIdRoute: MatchMatchIdRoute,
   LeaguesIndexRoute: LeaguesIndexRoute,
