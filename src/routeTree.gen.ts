@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as LiveRouteImport } from './routes/live'
 import { Route as MatchesRouteImport } from './routes/matches'
+import { Route as PointsRouteImport } from './routes/points'
 import { Route as PredictionsRouteImport } from './routes/predictions'
 import { Route as LeaguesIndexRouteImport } from './routes/leagues.index'
 import { Route as LeaguesSlugRouteImport } from './routes/leagues.$slug'
@@ -36,6 +37,11 @@ const LiveRoute = LiveRouteImport.update({
 const MatchesRoute = MatchesRouteImport.update({
   id: '/matches',
   path: '/matches',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PointsRoute = PointsRouteImport.update({
+  id: '/points',
+  path: '/points',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PredictionsRoute = PredictionsRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
+  '/points': typeof PointsRoute
   '/predictions': typeof PredictionsRoute
   '/leagues/$slug': typeof LeaguesSlugRoute
   '/match/$matchId': typeof MatchMatchIdRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
+  '/points': typeof PointsRoute
   '/predictions': typeof PredictionsRoute
   '/leagues/$slug': typeof LeaguesSlugRoute
   '/match/$matchId': typeof MatchMatchIdRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
+  '/points': typeof PointsRoute
   '/predictions': typeof PredictionsRoute
   '/leagues/$slug': typeof LeaguesSlugRoute
   '/match/$matchId': typeof MatchMatchIdRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/live'
     | '/matches'
+    | '/points'
     | '/predictions'
     | '/leagues/$slug'
     | '/match/$matchId'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/live'
     | '/matches'
+    | '/points'
     | '/predictions'
     | '/leagues/$slug'
     | '/match/$matchId'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/live'
     | '/matches'
+    | '/points'
     | '/predictions'
     | '/leagues/$slug'
     | '/match/$matchId'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   HistoryRoute: typeof HistoryRoute
   LiveRoute: typeof LiveRoute
   MatchesRoute: typeof MatchesRoute
+  PointsRoute: typeof PointsRoute
   PredictionsRoute: typeof PredictionsRoute
   LeaguesSlugRoute: typeof LeaguesSlugRoute
   MatchMatchIdRoute: typeof MatchMatchIdRoute
@@ -162,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/matches'
       fullPath: '/matches'
       preLoaderRoute: typeof MatchesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/points': {
+      id: '/points'
+      path: '/points'
+      fullPath: '/points'
+      preLoaderRoute: typeof PointsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/predictions': {
@@ -200,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   HistoryRoute: HistoryRoute,
   LiveRoute: LiveRoute,
   MatchesRoute: MatchesRoute,
+  PointsRoute: PointsRoute,
   PredictionsRoute: PredictionsRoute,
   LeaguesSlugRoute: LeaguesSlugRoute,
   MatchMatchIdRoute: MatchMatchIdRoute,
