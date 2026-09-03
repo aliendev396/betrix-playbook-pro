@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bell, Coins, History, LogOut, Shield, User } from "lucide-react";
+import { Bell, Coins, History, LogOut, Shield, User, Users2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/common/States";
@@ -58,6 +58,7 @@ function ProfilePage() {
           { to: "/points", label: "Virtual points", icon: Coins },
           { to: "/history", label: "Prediction history", icon: History },
           { to: "/notifications", label: "Notifications", icon: Bell },
+          { to: "/partners", label: "Partners & referrals", icon: Users2 },
         ].map((item) => (
           <Link
             key={item.to}
@@ -81,8 +82,10 @@ function ProfilePage() {
       <Button variant="outline" className="w-full gap-2">
         <User className="h-4 w-4" /> Edit profile
       </Button>
-      <Button variant="ghost" className="w-full gap-2 text-muted-foreground">
-        <LogOut className="h-4 w-4" /> Sign out
+      <Button asChild variant="ghost" className="w-full gap-2 text-muted-foreground">
+        <Link to="/auth">
+          <LogOut className="h-4 w-4" /> Sign out
+        </Link>
       </Button>
       <p className="pb-2 text-center text-[11px] text-muted-foreground">
         BETRIX is a free-to-play prediction game using virtual points only.

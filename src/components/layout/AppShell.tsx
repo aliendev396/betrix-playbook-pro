@@ -128,7 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <SheetTitle>Menu</SheetTitle>
                 </SheetHeader>
                 <nav className="mt-4 flex flex-col gap-1">
-                  {[...desktopNav, { to: "/code", label: "Load Prediction Code" }, { to: "/points", label: "Virtual Points" }, { to: "/profile", label: "Profile" }, { to: "/admin", label: "Admin Dashboard" }].map((item) => (
+                  {[...desktopNav, { to: "/code", label: "Load Prediction Code" }, { to: "/points", label: "Virtual Points" }, { to: "/partners", label: "Partners & Referrals" }, { to: "/profile", label: "Profile" }, { to: "/auth", label: "Sign In" }, { to: "/admin", label: "Admin Dashboard" }].map((item) => (
                     <Link
                       key={item.to}
                       to={item.to}

@@ -10,11 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CodeRouteImport } from './routes/code'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as LiveRouteImport } from './routes/live'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as PointsRouteImport } from './routes/points'
 import { Route as PredictionsRouteImport } from './routes/predictions'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -26,6 +29,16 @@ import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CodeRoute = CodeRouteImport.update({
@@ -51,6 +64,11 @@ const MatchesRoute = MatchesRouteImport.update({
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PartnersRoute = PartnersRouteImport.update({
+  id: '/partners',
+  path: '/partners',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PointsRoute = PointsRouteImport.update({
@@ -91,11 +109,14 @@ const MatchMatchIdRoute = MatchMatchIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
   '/code': typeof CodeRoute
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
   '/notifications': typeof NotificationsRoute
+  '/partners': typeof PartnersRoute
   '/points': typeof PointsRoute
   '/predictions': typeof PredictionsRoute
   '/profile': typeof ProfileRoute
@@ -106,11 +127,14 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
   '/code': typeof CodeRoute
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
   '/notifications': typeof NotificationsRoute
+  '/partners': typeof PartnersRoute
   '/points': typeof PointsRoute
   '/predictions': typeof PredictionsRoute
   '/profile': typeof ProfileRoute
@@ -122,11 +146,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
   '/code': typeof CodeRoute
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
   '/notifications': typeof NotificationsRoute
+  '/partners': typeof PartnersRoute
   '/points': typeof PointsRoute
   '/predictions': typeof PredictionsRoute
   '/profile': typeof ProfileRoute
@@ -139,11 +166,14 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
+    | '/auth'
     | '/code'
     | '/history'
     | '/live'
     | '/matches'
     | '/notifications'
+    | '/partners'
     | '/points'
     | '/predictions'
     | '/profile'
@@ -154,11 +184,14 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
+    | '/auth'
     | '/code'
     | '/history'
     | '/live'
     | '/matches'
     | '/notifications'
+    | '/partners'
     | '/points'
     | '/predictions'
     | '/profile'
@@ -169,11 +202,14 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
+    | '/auth'
     | '/code'
     | '/history'
     | '/live'
     | '/matches'
     | '/notifications'
+    | '/partners'
     | '/points'
     | '/predictions'
     | '/profile'
@@ -185,11 +221,14 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  AuthRoute: typeof AuthRoute
   CodeRoute: typeof CodeRoute
   HistoryRoute: typeof HistoryRoute
   LiveRoute: typeof LiveRoute
   MatchesRoute: typeof MatchesRoute
   NotificationsRoute: typeof NotificationsRoute
+  PartnersRoute: typeof PartnersRoute
   PointsRoute: typeof PointsRoute
   PredictionsRoute: typeof PredictionsRoute
   ProfileRoute: typeof ProfileRoute
@@ -206,6 +245,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/code': {
@@ -241,6 +294,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/partners': {
+      id: '/partners'
+      path: '/partners'
+      fullPath: '/partners'
+      preLoaderRoute: typeof PartnersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/points': {
@@ -297,11 +357,14 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  AuthRoute: AuthRoute,
   CodeRoute: CodeRoute,
   HistoryRoute: HistoryRoute,
   LiveRoute: LiveRoute,
   MatchesRoute: MatchesRoute,
   NotificationsRoute: NotificationsRoute,
+  PartnersRoute: PartnersRoute,
   PointsRoute: PointsRoute,
   PredictionsRoute: PredictionsRoute,
   ProfileRoute: ProfileRoute,
