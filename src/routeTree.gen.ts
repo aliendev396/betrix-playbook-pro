@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as LiveRouteImport } from './routes/live'
 import { Route as MatchesRouteImport } from './routes/matches'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as PointsRouteImport } from './routes/points'
 import { Route as PredictionsRouteImport } from './routes/predictions'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -38,6 +39,11 @@ const LiveRoute = LiveRouteImport.update({
 const MatchesRoute = MatchesRouteImport.update({
   id: '/matches',
   path: '/matches',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PointsRoute = PointsRouteImport.update({
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
+  '/notifications': typeof NotificationsRoute
   '/points': typeof PointsRoute
   '/predictions': typeof PredictionsRoute
   '/profile': typeof ProfileRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
+  '/notifications': typeof NotificationsRoute
   '/points': typeof PointsRoute
   '/predictions': typeof PredictionsRoute
   '/profile': typeof ProfileRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
   '/matches': typeof MatchesRoute
+  '/notifications': typeof NotificationsRoute
   '/points': typeof PointsRoute
   '/predictions': typeof PredictionsRoute
   '/profile': typeof ProfileRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/live'
     | '/matches'
+    | '/notifications'
     | '/points'
     | '/predictions'
     | '/profile'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/live'
     | '/matches'
+    | '/notifications'
     | '/points'
     | '/predictions'
     | '/profile'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/live'
     | '/matches'
+    | '/notifications'
     | '/points'
     | '/predictions'
     | '/profile'
@@ -152,6 +164,7 @@ export interface RootRouteChildren {
   HistoryRoute: typeof HistoryRoute
   LiveRoute: typeof LiveRoute
   MatchesRoute: typeof MatchesRoute
+  NotificationsRoute: typeof NotificationsRoute
   PointsRoute: typeof PointsRoute
   PredictionsRoute: typeof PredictionsRoute
   ProfileRoute: typeof ProfileRoute
@@ -188,6 +201,13 @@ declare module '@tanstack/react-router' {
       path: '/matches'
       fullPath: '/matches'
       preLoaderRoute: typeof MatchesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/points': {
@@ -240,6 +260,7 @@ const rootRouteChildren: RootRouteChildren = {
   HistoryRoute: HistoryRoute,
   LiveRoute: LiveRoute,
   MatchesRoute: MatchesRoute,
+  NotificationsRoute: NotificationsRoute,
   PointsRoute: PointsRoute,
   PredictionsRoute: PredictionsRoute,
   ProfileRoute: ProfileRoute,
