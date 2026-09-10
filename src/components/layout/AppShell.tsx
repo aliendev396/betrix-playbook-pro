@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Bell,
-  History as HistoryIcon,
+  Dices,
   Home,
   Menu,
   Radio,
@@ -10,7 +10,9 @@ import {
   Ticket,
   Trophy,
   User,
-  CalendarDays,
+  Wallet,
+  History as HistoryIcon,
+  Users,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -19,21 +21,32 @@ import { SlipContent } from "@/components/slip/PredictionSlip";
 import { formatPoints, useBetrix } from "@/store/betrix";
 import { cn } from "@/lib/utils";
 
-const desktopNav = [
-  { to: "/", label: "Home" },
-  { to: "/live", label: "Live" },
-  { to: "/matches", label: "Football" },
+const sideNav = [
+  { to: "/", label: "Home", icon: Home },
+  { to: "/live", label: "Live", icon: Radio },
+  { to: "/sports", label: "All Sports", icon: Trophy },
+  { to: "/casino", label: "Arcade", icon: Dices },
+  { to: "/history", label: "My Predictions", icon: HistoryIcon },
+  { to: "/profile", label: "Account", icon: User },
+] as const;
+
+const moreNav = [
+  { to: "/matches", label: "Football Fixtures" },
   { to: "/leagues", label: "Leagues" },
-  { to: "/predictions", label: "My Predictions" },
-  { to: "/history", label: "History" },
+  { to: "/code", label: "Load Prediction Code" },
+  { to: "/points", label: "Virtual Points" },
+  { to: "/partners", label: "Partners & Referrals" },
+  { to: "/notifications", label: "Notifications" },
+  { to: "/auth", label: "Sign In / Register" },
+  { to: "/admin", label: "Admin Dashboard" },
 ] as const;
 
 const mobileNav = [
   { to: "/", label: "Home", icon: Home },
   { to: "/live", label: "Live", icon: Radio },
-  { to: "/matches", label: "Matches", icon: CalendarDays },
-  { to: "/predictions", label: "Predictions", icon: Ticket },
-  { to: "/profile", label: "Profile", icon: User },
+  { to: "/sports", label: "Sports", icon: Trophy },
+  { to: "/casino", label: "Arcade", icon: Dices },
+  { to: "/profile", label: "Account", icon: User },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -47,27 +60,37 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 lg:px-6">
+      <header className="sticky top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-3 py-2.5 lg:px-6">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Menu" className="lg:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 overflow-y-auto bg-surface">
+              <SheetHeader className="text-left">
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <nav className="mt-4 flex flex-col gap-1">
+                {[...sideNav, ...moreNav].map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className="rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[status=active]:text-primary"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </SheetContent>
+          </Sheet>
+
           <Link to="/" aria-label="BETRIX home" className="flex items-center">
             <BetrixWordmark />
           </Link>
 
-          <nav className="hidden items-center justify-center gap-1 lg:flex">
-            {desktopNav.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                activeOptions={{ exact: item.to === "/" }}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[status=active]:bg-primary/12 data-[status=active]:text-primary"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="flex items-center justify-end gap-1.5">
+          <div className="ml-auto flex items-center gap-1.5">
             <Button asChild variant="ghost" size="icon" aria-label="Search">
               <Link to="/search">
                 <Search className="h-[18px] w-[18px]" />
@@ -90,75 +113,74 @@ export function AppShell({ children }: { children: ReactNode }) {
               {formatPoints(points)}
               <span className="text-[10px] font-semibold tracking-wider opacity-70">PTS</span>
             </Link>
-            <Button asChild variant="ghost" size="icon" aria-label="Profile" className="hidden sm:inline-flex">
-              <Link to="/profile">
-                <User className="h-[18px] w-[18px]" />
-              </Link>
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Link to="/auth">Login</Link>
             </Button>
-
-            <Sheet open={slipOpen} onOpenChange={setSlipOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="Prediction slip" className="relative lg:hidden">
-                  <Ticket className="h-[18px] w-[18px]" />
-                  {slip.length > 0 ? (
-                    <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
-                      {slip.length}
-                    </span>
-                  ) : null}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl border-border bg-surface p-0">
-                <SheetHeader className="border-b border-border px-4 py-3 text-left">
-                  <SheetTitle>Prediction Slip</SheetTitle>
-                </SheetHeader>
-                <div className="h-[calc(85vh-57px)]">
-                  <SlipContent onDone={() => setSlipOpen(false)} />
-                </div>
-              </SheetContent>
-            </Sheet>
-
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Menu" className="lg:hidden">
-                  <Menu className="h-[18px] w-[18px]" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-72 bg-surface">
-                <SheetHeader className="text-left">
-                  <SheetTitle>Menu</SheetTitle>
-                </SheetHeader>
-                <nav className="mt-4 flex flex-col gap-1">
-                  {[...desktopNav, { to: "/code", label: "Load Prediction Code" }, { to: "/points", label: "Virtual Points" }, { to: "/partners", label: "Partners & Referrals" }, { to: "/profile", label: "Profile" }, { to: "/auth", label: "Sign In" }, { to: "/admin", label: "Admin Dashboard" }].map((item) => (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      className="rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[status=active]:text-primary"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </nav>
-              </SheetContent>
-            </Sheet>
+            <Button asChild size="sm" className="font-bold">
+              <Link to="/auth">Register</Link>
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* Body */}
-      <div className="mx-auto flex max-w-7xl gap-6 px-4 pb-28 pt-4 lg:px-6 lg:pb-12">
-        <main className="min-w-0 flex-1">{children}</main>
-        <aside className="hidden w-[340px] shrink-0 lg:block">
-          <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-hidden rounded-2xl border border-border bg-surface">
-            <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-              <Ticket className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-semibold">Prediction Slip</h2>
+      <div className="mx-auto flex max-w-[1400px] gap-5 px-3 pb-28 pt-4 lg:px-6 lg:pb-10">
+        {/* Desktop sidebar */}
+        <aside className="hidden w-56 shrink-0 lg:block">
+          <nav className="sticky top-20 space-y-1">
+            {sideNav.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                activeOptions={{ exact: item.to === "/" }}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-surface hover:text-foreground data-[status=active]:border-l-2 data-[status=active]:border-primary data-[status=active]:bg-surface data-[status=active]:text-primary"
+              >
+                <item.icon className="h-[18px] w-[18px]" />
+                {item.label}
+              </Link>
+            ))}
+            <div className="!mt-5 space-y-0.5 border-t border-border pt-4">
+              {moreNav.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="block rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-primary"
+                >
+                  {item.label}
+                </Link>
+              ))}
             </div>
-            <div className="max-h-[calc(100vh-12rem)] overflow-auto">
-              <SlipContent />
-            </div>
-          </div>
+            <p className="!mt-6 flex items-center gap-1.5 px-3 text-[10px] leading-relaxed text-muted-foreground">
+              <Users className="h-3 w-3 shrink-0" /> Virtual points only — no real money.
+            </p>
+          </nav>
         </aside>
+
+        <main className="min-w-0 flex-1">{children}</main>
       </div>
+
+      {/* Floating slip button */}
+      <Sheet open={slipOpen} onOpenChange={setSlipOpen}>
+        <SheetTrigger asChild>
+          <button
+            type="button"
+            aria-label={`Prediction slip, ${slip.length} selections`}
+            className="glow-ring fixed bottom-20 right-4 z-50 grid h-16 w-16 place-items-center rounded-full brand-gradient text-primary-foreground transition-transform active:scale-95 lg:bottom-6"
+          >
+            <span className="tabular text-lg font-extrabold leading-none">{slip.length}</span>
+            <span className="text-[8px] font-bold uppercase tracking-wider">Slip</span>
+          </button>
+        </SheetTrigger>
+        <SheetContent side="right" className="w-full border-border bg-surface p-0 sm:max-w-md">
+          <SheetHeader className="border-b border-border px-4 py-3 text-left">
+            <SheetTitle className="flex items-center gap-2 text-base">
+              <Ticket className="h-4 w-4 text-primary" /> Prediction Slip
+            </SheetTitle>
+          </SheetHeader>
+          <div className="h-[calc(100dvh-57px)]">
+            <SlipContent onDone={() => setSlipOpen(false)} />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
@@ -169,7 +191,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 to={item.to}
                 activeOptions={{ exact: item.to === "/" }}
                 className={cn(
-                  "group flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium text-muted-foreground transition-colors",
+                  "flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium text-muted-foreground transition-colors",
                   "data-[status=active]:text-primary",
                 )}
               >
@@ -180,8 +202,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           ))}
         </ul>
       </nav>
+
+      <footer className="hidden border-t border-border px-6 py-8 text-center text-xs text-muted-foreground lg:block">
+        <div className="mx-auto flex max-w-[1400px] flex-col items-center gap-2">
+          <BetrixWordmark className="scale-90" />
+          <p>© {new Date().getFullYear()} BETRIX · Entertainment platform using virtual points only. 18+.</p>
+        </div>
+      </footer>
     </div>
   );
 }
 
-export { Trophy, HistoryIcon };
+export { Trophy, HistoryIcon, Wallet };
