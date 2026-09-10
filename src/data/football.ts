@@ -1,5 +1,14 @@
 export type MatchStatus = "SCHEDULED" | "LIVE" | "FINISHED" | "POSTPONED" | "CANCELLED";
 
+export interface Sport {
+  id: string;
+  slug: string;
+  name: string;
+  hot?: boolean;
+  /** Sports with a draw outcome get a 3-way main market. */
+  draw: boolean;
+}
+
 export interface League {
   id: string;
   slug: string;
@@ -7,6 +16,7 @@ export interface League {
   country: string;
   short: string;
   color: string;
+  sportId: string;
   active: boolean;
 }
 
@@ -37,6 +47,7 @@ export interface Market {
 export interface Match {
   id: string;
   leagueId: string;
+  sportId: string;
   homeId: string;
   awayId: string;
   kickoff: string; // ISO, server-authoritative in production
@@ -45,16 +56,32 @@ export interface Match {
   homeScore?: number | undefined;
   awayScore?: number | undefined;
   venue: string;
+  hot: boolean;
   markets: Market[];
 }
 
+export const sports: Sport[] = [
+  { id: "football", slug: "football", name: "Football", draw: true, hot: true },
+  { id: "tabletennis", slug: "table-tennis", name: "Table Tennis", draw: false, hot: true },
+  { id: "basketball", slug: "basketball", name: "Basketball", draw: false },
+  { id: "baseball", slug: "baseball", name: "Baseball", draw: false },
+  { id: "tennis", slug: "tennis", name: "Tennis", draw: false },
+];
+
+export const sportById = (id: string) => sports.find((s) => s.id === id)!;
+
 export const leagues: League[] = [
-  { id: "l1", slug: "premier-league", name: "Premier League", country: "England", short: "PL", color: "#3D195B", active: true },
-  { id: "l2", slug: "la-liga", name: "La Liga", country: "Spain", short: "LL", color: "#E01A22", active: true },
-  { id: "l3", slug: "serie-a", name: "Serie A", country: "Italy", short: "SA", color: "#0B5EA8", active: true },
-  { id: "l4", slug: "bundesliga", name: "Bundesliga", country: "Germany", short: "BL", color: "#D20515", active: true },
-  { id: "l5", slug: "ligue-1", name: "Ligue 1", country: "France", short: "L1", color: "#0A1A3C", active: true },
-  { id: "l6", slug: "champions-league", name: "Champions League", country: "Europe", short: "UCL", color: "#0B1F5C", active: true },
+  { id: "l1", slug: "premier-league", name: "Premier League", country: "England", short: "PL", color: "#3D195B", sportId: "football", active: true },
+  { id: "l2", slug: "la-liga", name: "La Liga", country: "Spain", short: "LL", color: "#E01A22", sportId: "football", active: true },
+  { id: "l3", slug: "serie-a", name: "Serie A", country: "Italy", short: "SA", color: "#0B5EA8", sportId: "football", active: true },
+  { id: "l4", slug: "bundesliga", name: "Bundesliga", country: "Germany", short: "BL", color: "#D20515", sportId: "football", active: true },
+  { id: "l5", slug: "ligue-1", name: "Ligue 1", country: "France", short: "L1", color: "#0A1A3C", sportId: "football", active: true },
+  { id: "l6", slug: "champions-league", name: "Champions League", country: "Europe", short: "UCL", color: "#0B1F5C", sportId: "football", active: true },
+  { id: "l7", slug: "world-cup-2026", name: "World Cup 2026", country: "International", short: "WC", color: "#1B7F4C", sportId: "football", active: true },
+  { id: "l8", slug: "nba", name: "NBA", country: "USA", short: "NBA", color: "#C8102E", sportId: "basketball", active: true },
+  { id: "l9", slug: "mlb", name: "MLB", country: "USA", short: "MLB", color: "#0A2B5C", sportId: "baseball", active: true },
+  { id: "l10", slug: "wtt-champions", name: "WTT Champions", country: "International", short: "WTT", color: "#E5721B", sportId: "tabletennis", active: true },
+  { id: "l11", slug: "atp-tour", name: "ATP Tour", country: "International", short: "ATP", color: "#1E63C7", sportId: "tennis", active: true },
 ];
 
 const t = (
@@ -92,46 +119,84 @@ export const teams: Team[] = [
   t("t22", "Olympique Marseille", "OM", "France", "l5", "#2FAEE0", "DLWWD"),
   t("t23", "AS Monaco", "ASM", "France", "l5", "#E51B22", "WWLWD"),
   t("t24", "Olympique Lyonnais", "OL", "France", "l5", "#1A2B5E", "LWDWW"),
+  // World Cup 2026
+  t("t25", "Brazil", "BRA", "Brazil", "l7", "#FEDD00", "WWWDW"),
+  t("t26", "Argentina", "ARG", "Argentina", "l7", "#75AADB", "WWWWD"),
+  t("t27", "England", "ENG", "England", "l7", "#CE1124", "WDWWL"),
+  t("t28", "France", "FRA", "France", "l7", "#0055A4", "WWDWW"),
+  t("t29", "Ghana", "GHA", "Ghana", "l7", "#006B3F", "WLWDW"),
+  t("t30", "Spain", "ESP", "Spain", "l7", "#AA151B", "WWWWW"),
+  // NBA
+  t("t31", "Boston Celtics", "BOS", "USA", "l8", "#007A33", "WWLWW"),
+  t("t32", "Los Angeles Lakers", "LAL", "USA", "l8", "#552583", "LWWDW"),
+  t("t33", "Denver Nuggets", "DEN", "USA", "l8", "#0E2240", "WWWLW"),
+  t("t34", "Miami Heat", "MIA", "USA", "l8", "#98002E", "LWLWW"),
+  // MLB
+  t("t35", "New York Yankees", "NYY", "USA", "l9", "#132448", "WWLWL"),
+  t("t36", "Los Angeles Dodgers", "LAD", "USA", "l9", "#005A9C", "WWWLW"),
+  t("t37", "Chicago Cubs", "CHC", "USA", "l9", "#0E3386", "LWWLW"),
+  t("t38", "Houston Astros", "HOU", "USA", "l9", "#EB6E1F", "WLWWW"),
+  // Table tennis
+  t("t39", "Fan Zhendong", "FZD", "China", "l10", "#D7263D", "WWWWL"),
+  t("t40", "Tomokazu Harimoto", "HAR", "Japan", "l10", "#1B3B6F", "WLWWW"),
+  t("t41", "Truls Moregard", "MOR", "Sweden", "l10", "#FFCD00", "LWWLW"),
+  t("t42", "Hugo Calderano", "CAL", "Brazil", "l10", "#009739", "WWLWW"),
+  // Tennis
+  t("t43", "Carlos Alcaraz", "ALC", "Spain", "l11", "#FF6B00", "WWWWW"),
+  t("t44", "Jannik Sinner", "SIN", "Italy", "l11", "#2E9E4F", "WWWLW"),
+  t("t45", "Novak Djokovic", "DJO", "Serbia", "l11", "#1B4D8F", "WLWWW"),
+  t("t46", "Daniil Medvedev", "MED", "Russia", "l11", "#7A2E8E", "LWWWL"),
 ];
 
 export const teamById = (id: string) => teams.find((x) => x.id === id)!;
 export const leagueById = (id: string) => leagues.find((x) => x.id === id)!;
 export const leagueBySlug = (slug: string) => leagues.find((x) => x.slug === slug);
 
-function markets(seed: number): Market[] {
+function markets(seed: number, draw: boolean): Market[] {
   const j = (n: number) => Math.round((n + ((seed % 7) - 3) * 0.08) * 100) / 100;
-  return [
-    {
-      id: "1x2",
-      name: "Match Result",
-      status: "ACTIVE",
-      options: [
-        { id: "home", label: "Home", multiplier: j(2.1) },
-        { id: "draw", label: "Draw", multiplier: j(3.3) },
-        { id: "away", label: "Away", multiplier: j(2.9) },
-      ],
-    },
-    {
+  const main: Market = {
+    id: "1x2",
+    name: draw ? "Match Result" : "Match Winner",
+    status: "ACTIVE",
+    options: draw
+      ? [
+          { id: "home", label: "1", multiplier: j(2.1) },
+          { id: "draw", label: "X", multiplier: j(3.3) },
+          { id: "away", label: "2", multiplier: j(2.9) },
+        ]
+      : [
+          { id: "home", label: "1", multiplier: j(1.72) },
+          { id: "away", label: "2", multiplier: j(2.05) },
+        ],
+  };
+
+  const list: Market[] = [main];
+
+  if (draw) {
+    list.push({
       id: "dc",
       name: "Double Chance",
       status: seed % 9 === 0 ? "SUSPENDED" : "ACTIVE",
       options: [
-        { id: "1x", label: "Home or Draw", multiplier: j(1.32) },
-        { id: "12", label: "Home or Away", multiplier: j(1.28) },
-        { id: "x2", label: "Draw or Away", multiplier: j(1.45) },
+        { id: "1x", label: "1X", multiplier: j(1.32) },
+        { id: "12", label: "12", multiplier: j(1.28) },
+        { id: "x2", label: "X2", multiplier: j(1.45) },
       ],
-    },
-    {
-      id: "ou",
-      name: "Total Goals",
-      status: "ACTIVE",
-      options: [
-        { id: "o15", label: "Over 1.5", multiplier: j(1.28) },
-        { id: "o25", label: "Over 2.5", multiplier: j(1.85) },
-        { id: "u25", label: "Under 2.5", multiplier: j(1.95) },
-      ],
-    },
-    {
+    });
+  }
+
+  list.push({
+    id: "ou",
+    name: "Over / Under 2.5",
+    status: "ACTIVE",
+    options: [
+      { id: "o25", label: "Over 2.5", multiplier: j(1.85) },
+      { id: "u25", label: "Under 2.5", multiplier: j(1.95) },
+    ],
+  });
+
+  if (draw) {
+    list.push({
       id: "btts",
       name: "Both Teams To Score",
       status: seed % 11 === 0 ? "CLOSED" : "ACTIVE",
@@ -139,31 +204,89 @@ function markets(seed: number): Market[] {
         { id: "yes", label: "Yes", multiplier: j(1.72) },
         { id: "no", label: "No", multiplier: j(2.05) },
       ],
-    },
-  ];
+    });
+  }
+
+  list.push({
+    id: "hcp",
+    name: "Handicap",
+    status: "ACTIVE",
+    options: [
+      { id: "h-1", label: "Home -1", multiplier: j(3.1) },
+      { id: "a+1", label: "Away +1", multiplier: j(1.42) },
+    ],
+  });
+
+  if (draw) {
+    list.push({
+      id: "htft",
+      name: "Half Time / Full Time",
+      status: "ACTIVE",
+      options: [
+        { id: "hh", label: "1 / 1", multiplier: j(3.4) },
+        { id: "xx", label: "X / X", multiplier: j(5.1) },
+        { id: "aa", label: "2 / 2", multiplier: j(4.2) },
+      ],
+    });
+  }
+
+  list.push({
+    id: "totals",
+    name: "Total Goals / Points",
+    status: "ACTIVE",
+    options: [
+      { id: "o15", label: "Over 1.5", multiplier: j(1.28) },
+      { id: "u35", label: "Under 3.5", multiplier: j(1.44) },
+    ],
+  });
+
+  return list;
 }
+
+/** Market tabs shown above the odds table, mirroring a sportsbook layout. */
+export const marketTabs = [
+  { id: "1x2", label: "1X2" },
+  { id: "ou", label: "O/U 2.5" },
+  { id: "dc", label: "DC" },
+  { id: "btts", label: "BTTS" },
+  { id: "hcp", label: "Handicap" },
+  { id: "htft", label: "HT/FT" },
+] as const;
 
 const DAY = 86400000;
 /** Fixed base date so demo data is deterministic across server and client renders. */
 const base = new Date();
 base.setHours(0, 0, 0, 0);
 
-const pairs: Array<[string, string, string, number, MatchStatus, string]> = [
+type Pair = [string, string, string, number, MatchStatus, string];
+
+const pairs: Pair[] = [
   ["t1", "t2", "l1", 0, "LIVE", "Old Trafford"],
   ["t3", "t5", "l1", 0, "LIVE", "Anfield"],
   ["t9", "t11", "l2", 0, "LIVE", "Santiago Bernabéu"],
   ["t17", "t19", "l4", 0, "LIVE", "Allianz Arena"],
+  ["t39", "t40", "l10", 0, "LIVE", "Macau Arena"],
+  ["t31", "t33", "l8", 0, "LIVE", "TD Garden"],
+  ["t43", "t46", "l11", 0, "LIVE", "Centre Court"],
   ["t4", "t6", "l1", 0, "SCHEDULED", "Etihad Stadium"],
   ["t7", "t8", "l1", 0, "SCHEDULED", "St James' Park"],
   ["t10", "t12", "l2", 0, "SCHEDULED", "Spotify Camp Nou"],
+  ["t25", "t29", "l7", 0, "SCHEDULED", "MetLife Stadium"],
+  ["t35", "t36", "l9", 0, "SCHEDULED", "Yankee Stadium"],
+  ["t41", "t42", "l10", 0, "SCHEDULED", "Macau Arena"],
   ["t13", "t14", "l3", 1, "SCHEDULED", "San Siro"],
   ["t15", "t16", "l3", 1, "SCHEDULED", "Allianz Stadium"],
   ["t18", "t20", "l4", 1, "SCHEDULED", "Signal Iduna Park"],
   ["t21", "t22", "l5", 1, "SCHEDULED", "Parc des Princes"],
+  ["t26", "t27", "l7", 1, "SCHEDULED", "Estadio Azteca"],
+  ["t32", "t34", "l8", 1, "SCHEDULED", "Crypto.com Arena"],
+  ["t37", "t38", "l9", 1, "SCHEDULED", "Wrigley Field"],
   ["t23", "t24", "l5", 2, "SCHEDULED", "Stade Louis II"],
   ["t9", "t17", "l6", 2, "SCHEDULED", "Santiago Bernabéu"],
+  ["t44", "t45", "l11", 2, "SCHEDULED", "Rod Laver Arena"],
   ["t3", "t21", "l6", 3, "SCHEDULED", "Anfield"],
   ["t2", "t13", "l6", 3, "SCHEDULED", "Emirates Stadium"],
+  ["t28", "t30", "l7", 3, "SCHEDULED", "BC Place"],
   ["t5", "t8", "l1", 4, "SCHEDULED", "Stamford Bridge"],
   ["t16", "t13", "l3", 4, "SCHEDULED", "Stadio Maradona"],
   ["t20", "t17", "l4", 5, "SCHEDULED", "BayArena"],
@@ -174,12 +297,15 @@ const pairs: Array<[string, string, string, number, MatchStatus, string]> = [
 ];
 
 export const matches: Match[] = pairs.map(([homeId, awayId, leagueId, day, status, venue], i) => {
-  const kickoff = new Date(base.getTime() + day * DAY + (14 + (i % 6)) * 3600000);
+  const kickoff = new Date(base.getTime() + day * DAY + (12 + (i % 9)) * 3600000);
   const live = status === "LIVE";
   const finished = status === "FINISHED";
+  const league = leagues.find((l) => l.id === leagueId)!;
+  const sport = sports.find((s) => s.id === league.sportId)!;
   return {
     id: `m${i + 1}`,
     leagueId,
+    sportId: league.sportId,
     homeId,
     awayId,
     kickoff: kickoff.toISOString(),
@@ -188,7 +314,8 @@ export const matches: Match[] = pairs.map(([homeId, awayId, leagueId, day, statu
     homeScore: live || finished ? (i * 3) % 4 : undefined,
     awayScore: live || finished ? (i * 5) % 3 : undefined,
     venue,
-    markets: markets(i + 1),
+    hot: i % 3 === 0,
+    markets: markets(i + 1, sport.draw),
   };
 });
 
@@ -199,6 +326,7 @@ export const upcomingMatches = () =>
     .filter((m) => m.status === "SCHEDULED")
     .sort((a, b) => a.kickoff.localeCompare(b.kickoff));
 export const finishedMatches = () => matches.filter((m) => m.status === "FINISHED");
+export const matchesBySport = (sportId: string) => matches.filter((m) => m.sportId === sportId);
 
 export function standingsFor(leagueId: string) {
   return teams
@@ -236,4 +364,34 @@ export function formatKickoff(iso: string) {
 
 export function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+export function formatDayLabel(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "2-digit" });
+}
+
+/** Landing categories shown as coloured tiles on the home page. */
+export const categories = [
+  { slug: "today", title: "TODAY'S", subtitle: "FOOTBALL", accent: "#1DB954" },
+  { slug: "worldcup", title: "WORLD CUP", subtitle: "2026", accent: "#3B6FE0" },
+  { slug: "nba", title: "NBA", subtitle: "BASKETBALL", accent: "#8B5CF6" },
+  { slug: "mlb", title: "MLB", subtitle: "BASEBALL", accent: "#E5721B" },
+  { slug: "tabletennis", title: "TABLE", subtitle: "TENNIS", accent: "#E0483B" },
+] as const;
+
+export function matchesForCategory(slug: string): Match[] {
+  switch (slug) {
+    case "today":
+      return matches.filter((m) => m.sportId === "football" && dayBucket(m.kickoff) === "Today");
+    case "worldcup":
+      return matches.filter((m) => m.leagueId === "l7");
+    case "nba":
+      return matches.filter((m) => m.leagueId === "l8");
+    case "mlb":
+      return matches.filter((m) => m.leagueId === "l9");
+    case "tabletennis":
+      return matches.filter((m) => m.sportId === "tabletennis");
+    default:
+      return [];
+  }
 }
