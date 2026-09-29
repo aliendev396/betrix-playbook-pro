@@ -2,215 +2,164 @@ import { useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Bell,
-  Dices,
-  Home,
-  Menu,
+  Gamepad2,
+  Home as HomeIcon,
   Radio,
+  Receipt,
   Search,
-  Ticket,
-  Trophy,
   User,
-  Wallet,
-  History as HistoryIcon,
-  Users,
 } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { BetrixWordmark } from "@/components/brand/Logo";
+import { SplashScreen } from "@/components/brand/SplashScreen";
 import { SlipContent } from "@/components/slip/PredictionSlip";
-import { formatPoints, useBetrix } from "@/store/betrix";
+import { useBetrix } from "@/store/betrix";
 import { cn } from "@/lib/utils";
 
-const sideNav = [
-  { to: "/", label: "Home", icon: Home },
-  { to: "/live", label: "Live", icon: Radio },
-  { to: "/sports", label: "All Sports", icon: Trophy },
-  { to: "/casino", label: "Arcade", icon: Dices },
-  { to: "/history", label: "My Predictions", icon: HistoryIcon },
-  { to: "/profile", label: "Account", icon: User },
-] as const;
-
-const moreNav = [
-  { to: "/matches", label: "Football Fixtures" },
-  { to: "/leagues", label: "Leagues" },
-  { to: "/code", label: "Load Prediction Code" },
-  { to: "/points", label: "Virtual Points" },
-  { to: "/partners", label: "Partners & Referrals" },
-  { to: "/notifications", label: "Notifications" },
-  { to: "/auth", label: "Sign In / Register" },
-  { to: "/admin", label: "Admin Dashboard" },
-] as const;
-
 const mobileNav = [
-  { to: "/", label: "Home", icon: Home },
+  { to: "/", label: "Home", icon: HomeIcon },
   { to: "/live", label: "Live", icon: Radio },
-  { to: "/sports", label: "Sports", icon: Trophy },
-  { to: "/casino", label: "Arcade", icon: Dices },
-  { to: "/profile", label: "Account", icon: User },
+  { to: "/games", label: "Casino", icon: Gamepad2 },
+  { to: "/history", label: "My Bets", icon: Receipt },
+  { to: "/profile", label: "Me", icon: User },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { points, slip, notifications } = useBetrix();
+  const { slip, notifications, isLoggedIn, profile } = useBetrix();
   const [slipOpen, setSlipOpen] = useState(false);
   const unread = notifications.filter((n) => !n.read).length;
 
-  const bare = pathname.startsWith("/admin") || pathname.startsWith("/auth");
-  if (bare) return <>{children}</>;
+  const isBare = pathname.startsWith("/admin");
+  if (isBare) return <>{children}</>;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-3 py-2.5 lg:px-6">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Menu" className="lg:hidden">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 overflow-y-auto bg-surface">
-              <SheetHeader className="text-left">
-                <SheetTitle>Menu</SheetTitle>
-              </SheetHeader>
-              <nav className="mt-4 flex flex-col gap-1">
-                {[...sideNav, ...moreNav].map((item) => (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    className="rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[status=active]:text-primary"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-            </SheetContent>
-          </Sheet>
-
-          <Link to="/" aria-label="BETRIX home" className="flex items-center">
+    <div className="min-h-screen flex flex-col bg-[#0e0e11] text-white selection:bg-[#F5C400] selection:text-black font-sans select-none">
+      <SplashScreen />
+      {/* TOP HEADER (Primestakers Style) */}
+      <header className="sticky top-0 z-40 w-full bg-[#0c0c0e] border-b border-[#1f1f26] shadow-md">
+        <div className="mx-auto w-full max-w-5xl flex h-14 items-center px-3 md:px-5 gap-3 justify-between">
+          {/* Logo */}
+          <Link to="/" aria-label="BETRIX home" className="shrink-0 active:scale-95 transition-transform">
             <BetrixWordmark />
           </Link>
 
-          <div className="ml-auto flex items-center gap-1.5">
-            <Button asChild variant="ghost" size="icon" aria-label="Search">
-              <Link to="/search">
-                <Search className="h-[18px] w-[18px]" />
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="icon" aria-label="Notifications" className="relative">
-              <Link to="/notifications">
-                <Bell className="h-[18px] w-[18px]" />
-                {unread > 0 ? (
-                  <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
-                    {unread}
-                  </span>
-                ) : null}
-              </Link>
-            </Button>
+          {/* Right Controls: Search, Notifications, Login, Register */}
+          <div className="flex items-center gap-3">
             <Link
-              to="/points"
-              className="tabular hidden items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-sm font-bold text-primary transition-colors hover:bg-primary/20 sm:inline-flex"
+              to="/search"
+              className="p-1.5 text-gray-300 hover:text-white transition-colors shrink-0"
+              aria-label="Search"
             >
-              {formatPoints(points)}
-              <span className="text-[10px] font-semibold tracking-wider opacity-70">PTS</span>
+              <Search className="h-5 w-5" />
             </Link>
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link to="/auth">Login</Link>
-            </Button>
-            <Button asChild size="sm" className="font-bold">
-              <Link to="/auth">Register</Link>
-            </Button>
+
+            <Link
+              to="/notifications"
+              className="p-1.5 text-gray-300 hover:text-white transition-colors relative shrink-0"
+              aria-label="Notifications"
+            >
+              <Bell className="h-5 w-5" />
+              {unread > 0 && (
+                <span className="absolute top-1 right-1 grid h-4 min-w-4 place-items-center rounded-full bg-[#F5C400] px-1 text-[9px] font-black text-black">
+                  {unread}
+                </span>
+              )}
+            </Link>
+
+            {!isLoggedIn ? (
+              <>
+                <Link
+                  to="/auth"
+                  className="text-gray-200 font-bold text-xs px-2 py-1.5 hover:text-white tracking-wide"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/auth"
+                  search={{ mode: "signup" } as any}
+                  className="bg-[#F5C400] text-black font-black text-xs tracking-wider rounded-md px-3.5 py-1.5 shadow hover:bg-[#e0b300] active:scale-95 transition-all whitespace-nowrap"
+                >
+                  Register
+                </Link>
+              </>
+            ) : (
+              <Link
+                to="/profile"
+                className="bg-[#1e1e26] text-white border border-[#2a2a35] font-extrabold text-xs tracking-wider rounded-md px-3 py-1.5 shadow hover:bg-[#252530] transition-all flex items-center gap-1.5"
+              >
+                <User className="h-3.5 w-3.5 text-[#F5C400]" />
+                <span>{profile.phone || "Account"}</span>
+              </Link>
+            )}
           </div>
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-[1400px] gap-5 px-3 pb-28 pt-4 lg:px-6 lg:pb-10">
-        {/* Desktop sidebar */}
-        <aside className="hidden w-56 shrink-0 lg:block">
-          <nav className="sticky top-20 space-y-1">
-            {sideNav.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                activeOptions={{ exact: item.to === "/" }}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-surface hover:text-foreground data-[status=active]:border-l-2 data-[status=active]:border-primary data-[status=active]:bg-surface data-[status=active]:text-primary"
-              >
-                <item.icon className="h-[18px] w-[18px]" />
-                {item.label}
-              </Link>
-            ))}
-            <div className="!mt-5 space-y-0.5 border-t border-border pt-4">
-              {moreNav.map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className="block rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-primary"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-            <p className="!mt-6 flex items-center gap-1.5 px-3 text-[10px] leading-relaxed text-muted-foreground">
-              <Users className="h-3 w-3 shrink-0" /> Virtual points only — no real money.
-            </p>
-          </nav>
-        </aside>
-
-        <main className="min-w-0 flex-1">{children}</main>
+      {/* MAIN BODY */}
+      <div className="flex-1 w-full max-w-5xl mx-auto">
+        <main className="pb-24 md:pb-8">{children}</main>
       </div>
 
-      {/* Floating slip button */}
+      {/* FLOATING BET SLIP DRAWER (Primestakers Style Sheet Drawer) */}
       <Sheet open={slipOpen} onOpenChange={setSlipOpen}>
         <SheetTrigger asChild>
           <button
             type="button"
-            aria-label={`Prediction slip, ${slip.length} selections`}
-            className="glow-ring fixed bottom-20 right-4 z-50 grid h-16 w-16 place-items-center rounded-full brand-gradient text-primary-foreground transition-transform active:scale-95 lg:bottom-6"
+            id="betslip-trigger"
+            aria-label={`Open bet slip with ${slip.length} selections`}
+            className="fixed right-4 bottom-20 z-50 flex flex-col items-center justify-center h-14 w-14 rounded-full bg-[#F5C400] text-black shadow-[0_4px_20px_rgba(245,196,0,0.5)] border-2 border-white hover:scale-105 transition-transform"
           >
-            <span className="tabular text-lg font-extrabold leading-none">{slip.length}</span>
-            <span className="text-[8px] font-bold uppercase tracking-wider">Slip</span>
+            <span className="text-lg font-black leading-none">{slip.length}</span>
+            <span className="text-[8px] font-black uppercase tracking-tighter text-black">BETSLIP</span>
           </button>
         </SheetTrigger>
-        <SheetContent side="right" className="w-full border-border bg-surface p-0 sm:max-w-md">
-          <SheetHeader className="border-b border-border px-4 py-3 text-left">
-            <SheetTitle className="flex items-center gap-2 text-base">
-              <Ticket className="h-4 w-4 text-primary" /> Prediction Slip
-            </SheetTitle>
-          </SheetHeader>
-          <div className="h-[calc(100dvh-57px)]">
-            <SlipContent onDone={() => setSlipOpen(false)} />
-          </div>
+        <SheetContent
+          side="bottom"
+          className={cn(
+            "w-full max-w-lg mx-auto border-[#2a2a35] bg-[#121216] text-white p-0 rounded-t-2xl overflow-hidden shadow-2xl border-t-0 [&>button]:hidden transition-all duration-300",
+            slip.length > 0 ? "h-[80vh]" : "h-auto max-h-[50vh]"
+          )}
+        >
+          <SlipContent onDone={() => setSlipOpen(false)} />
         </SheetContent>
       </Sheet>
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
-        <ul className="mx-auto grid max-w-lg grid-cols-5">
-          {mobileNav.map((item) => (
-            <li key={item.to}>
-              <Link
-                to={item.to}
-                activeOptions={{ exact: item.to === "/" }}
-                className={cn(
-                  "flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium text-muted-foreground transition-colors",
-                  "data-[status=active]:text-primary",
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                {item.label}
-              </Link>
-            </li>
-          ))}
+      {/* MOBILE BOTTOM NAVIGATION BAR (Primestakers Style) */}
+      <nav className="fixed bottom-0 inset-x-0 z-40 bg-[#0c0c0e] border-t border-[#1a1a22] shadow-2xl">
+        <ul className="grid grid-cols-5 max-w-5xl mx-auto">
+          {mobileNav.map((item) => {
+            const target = item.to === "/profile" && !isLoggedIn ? "/auth" : item.to;
+            return (
+              <li key={item.to}>
+                <Link
+                  to={target}
+                  activeOptions={{ exact: item.to === "/" }}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-bold relative text-gray-400 transition-colors",
+                    "data-[status=active]:text-[#F5C400] data-[status=active]:font-black"
+                  )}
+                >
+                  {({ isActive }) => (
+                    <>
+                      <span
+                        className={cn(
+                          "flex h-8 w-8 items-center justify-center rounded-full transition-all",
+                          isActive ? "border-2 border-[#F5C400] bg-[#F5C400]/10 text-[#F5C400]" : ""
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" />
+                      </span>
+                      <span>{item.label}</span>
+                    </>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
+        <div className="h-[env(safe-area-inset-bottom)]" />
       </nav>
-
-      <footer className="hidden border-t border-border px-6 py-8 text-center text-xs text-muted-foreground lg:block">
-        <div className="mx-auto flex max-w-[1400px] flex-col items-center gap-2">
-          <BetrixWordmark className="scale-90" />
-          <p>© {new Date().getFullYear()} BETRIX · Entertainment platform using virtual points only. 18+.</p>
-        </div>
-      </footer>
     </div>
   );
 }
-
-export { Trophy, HistoryIcon, Wallet };

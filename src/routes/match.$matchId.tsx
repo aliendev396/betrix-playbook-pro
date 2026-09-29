@@ -1,239 +1,957 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
-import { Lock } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useMemo } from "react";
+import {
+  ChevronLeft,
+  ChevronDown,
+  ChevronUp,
+  Home,
+  Info,
+  Star,
+  SlidersHorizontal,
+  Send,
+  BarChart2,
+  MessageSquare,
+  PlayCircle,
+  Share2,
+  Zap,
+  TrendingUp,
+} from "lucide-react";
 import { LiveBadge } from "@/components/match/LiveMatchCard";
 import { TeamCrest } from "@/components/common/TeamCrest";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { useBetrix } from "@/store/betrix";
 import { cn } from "@/lib/utils";
-import { formatDate, formatKickoff, leagueById, matchById, teamById } from "@/data/football";
+import {
+  formatDate,
+  formatKickoff,
+  leagueById,
+  matchById,
+  teamById,
+  type Match,
+  type Team,
+  type League,
+} from "@/data/football";
 
 export const Route = createFileRoute("/match/$matchId")({
   loader: ({ params }) => {
-    const match = matchById(params.matchId);
-    if (!match) throw notFound();
+    let match = matchById(params.matchId);
+    
+    // Fallback match generator if match not found directly in mock data
+    if (!match) {
+      const isLive = params.matchId.includes("live") || params.matchId.includes("1");
+      match = {
+        id: params.matchId,
+        code: `#${Math.floor(10000 + Math.random() * 89999)}`,
+        leagueId: "l1",
+        sportId: "football",
+        homeId: "t1", // Man Utd
+        awayId: "t2", // Arsenal
+        kickoff: new Date().toISOString(),
+        status: isLive ? "LIVE" : "SCHEDULED",
+        minute: isLive ? 38 : undefined,
+        homeScore: isLive ? 1 : undefined,
+        awayScore: isLive ? 0 : undefined,
+        venue: "Old Trafford, Manchester",
+        hot: true,
+        markets: [],
+      };
+    }
     return { match };
   },
   head: ({ loaderData }) => {
-    if (!loaderData) {
-      return { meta: [{ title: "Match not found — BETRIX" }, { name: "robots", content: "noindex" }] };
+    if (!loaderData?.match) {
+      return { meta: [{ title: "Match Details — BETRIX" }] };
     }
     const { match } = loaderData;
-    const title = `${teamById(match.homeId).name} vs ${teamById(match.awayId).name} — BETRIX`;
+    const home = teamById(match.homeId) || { name: "Home Team", short: "HOME" };
+    const away = teamById(match.awayId) || { name: "Away Team", short: "AWAY" };
+    const title = `${home.name} vs ${away.name} Details — BETRIX`;
     return {
       meta: [
         { title },
-        { name: "description", content: `${leagueById(match.leagueId).name} match preview, prediction markets, statistics, lineups and form.` },
-        { property: "og:title", content: title },
-        { property: "og:description", content: `Prediction markets, statistics and form for ${teamById(match.homeId).short} vs ${teamById(match.awayId).short}.` },
+        { name: "description", content: `Live betting markets, odds, statistics and chat for ${home.name} vs ${away.name}.` },
       ],
     };
   },
-  component: MatchPage,
+  component: MatchDetailPage,
 });
 
-function StatBar({ label, home, away }: { label: string; home: number; away: number }) {
-  const total = home + away || 1;
-  return (
-    <div>
-      <div className="flex items-center justify-between text-xs">
-        <span className="tabular font-semibold">{home}</span>
-        <span className="text-muted-foreground">{label}</span>
-        <span className="tabular font-semibold">{away}</span>
-      </div>
-      <div className="mt-1.5 flex h-1.5 overflow-hidden rounded-full bg-muted">
-        <span className="bg-primary" style={{ width: `${(home / total) * 100}%` }} />
-        <span className="flex-1 bg-chart-2" />
-      </div>
-    </div>
-  );
+interface MarketItem {
+  id: string;
+  name: string;
+  category: "Main" | "Goals" | "Halves" | "Handicap" | "Corners" | "Cards";
+  info?: string;
+  options: {
+    id: string;
+    label: string;
+    multiplier: number;
+    subLabel?: string;
+  }[];
 }
 
-function MatchPage() {
+function generateMatchMarkets(home: Team, away: Team, seed: number): MarketItem[] {
+  const hName = home?.name || "Home";
+  const aName = away?.name || "Away";
+  const hShort = home?.short || "HOME";
+  const aShort = away?.short || "AWAY";
+
+  // Base odds multipliers based on seed
+  const base1 = 1.25 + (seed % 90) / 100;
+  const baseX = 3.40 + (seed % 150) / 100;
+  const base2 = 4.20 + (seed % 300) / 100;
+
+  return [
+    {
+      id: "m_1x2",
+      name: "1X2 (Match Result)",
+      category: "Main",
+      info: "Predict the final result at full-time (90 mins).",
+      options: [
+        { id: "opt_home", label: "Home", subLabel: hName, multiplier: Number(base1.toFixed(2)) },
+        { id: "opt_draw", label: "Draw", subLabel: "Draw", multiplier: Number(baseX.toFixed(2)) },
+        { id: "opt_away", label: "Away", subLabel: aName, multiplier: Number(base2.toFixed(2)) },
+      ],
+    },
+
+    {
+      id: "m_overunder_15",
+      name: "Over/Under - Early Goals 10|total=1.5",
+      category: "Goals",
+      info: "Total goals scored in the match relative to 1.5.",
+      options: [
+        { id: "opt_over_15", label: "Over 1.5", multiplier: Number((1.22 + (seed % 20) / 100).toFixed(2)) },
+        { id: "opt_under_15", label: "Under 1.5", multiplier: Number((3.80 + (seed % 50) / 100).toFixed(2)) },
+      ],
+    },
+    {
+      id: "m_double_chance",
+      name: "Double Chance",
+      category: "Main",
+      info: "Cover two out of three possible outcomes.",
+      options: [
+        { id: "opt_dc_1x", label: `${hShort} or Draw`, multiplier: Number((1.05 + (seed % 10) / 100).toFixed(2)) },
+        { id: "opt_dc_12", label: `${hShort} or ${aShort}`, multiplier: Number((1.12 + (seed % 10) / 100).toFixed(2)) },
+        { id: "opt_dc_x2", label: `Draw or ${aShort}`, multiplier: Number((2.40 + (seed % 30) / 100).toFixed(2)) },
+      ],
+    },
+    {
+      id: "m_double_chance_1up",
+      name: "Double Chance - 1UP",
+      category: "Main",
+      info: "Early payout if the team goes 1 goal up.",
+      options: [
+        { id: "opt_1up_1x", label: `${hShort} or Draw`, multiplier: Number((1.04 + (seed % 8) / 100).toFixed(2)) },
+        { id: "opt_1up_12", label: `${hShort} or ${aShort}`, multiplier: 1.18 },
+        { id: "opt_1up_x2", label: `Draw or ${aShort}`, multiplier: Number((2.55 + (seed % 40) / 100).toFixed(2)) },
+      ],
+    },
+    {
+      id: "m_first_goal",
+      name: "1st Goal",
+      category: "Goals",
+      info: "Which team will score the first goal of the match?",
+      options: [
+        { id: "opt_fg_home", label: hName, multiplier: Number((1.25 + (seed % 15) / 100).toFixed(2)) },
+        { id: "opt_fg_none", label: "None", multiplier: Number((14.50 + (seed % 200) / 100).toFixed(2)) },
+        { id: "opt_fg_away", label: aName, multiplier: Number((4.70 + (seed % 80) / 100).toFixed(2)) },
+      ],
+    },
+    {
+      id: "m_handicap_01",
+      name: "Handicap 0:1",
+      category: "Handicap",
+      info: "Away team starts with a 1 goal advantage.",
+      options: [
+        { id: "opt_h1_home", label: `${hShort} (-1)`, multiplier: Number((1.71 + (seed % 20) / 100).toFixed(2)) },
+        { id: "opt_h1_draw", label: "Draw (0:1)", multiplier: Number((3.75 + (seed % 30) / 100).toFixed(2)) },
+        { id: "opt_h1_away", label: `${aShort} (+1)`, multiplier: Number((4.10 + (seed % 50) / 100).toFixed(2)) },
+      ],
+    },
+    {
+      id: "m_handicap_02",
+      name: "Handicap 0:2",
+      category: "Handicap",
+      info: "Away team starts with a 2 goal advantage.",
+      options: [
+        { id: "opt_h2_home", label: `${hShort} (-2)`, multiplier: Number((2.90 + (seed % 30) / 100).toFixed(2)) },
+        { id: "opt_h2_draw", label: "Draw (0:2)", multiplier: Number((3.90 + (seed % 25) / 100).toFixed(2)) },
+        { id: "opt_h2_away", label: `${aShort} (+2)`, multiplier: Number((2.05 + (seed % 20) / 100).toFixed(2)) },
+      ],
+    },
+    {
+      id: "m_correct_score",
+      name: "Correct Score",
+      category: "Main",
+      info: "Predict the exact final score of the match.",
+      options: [
+        { id: "cs-1:0", label: "1:0", multiplier: 9.00 },
+        { id: "cs-0:0", label: "0:0", multiplier: 1.07 },
+        { id: "cs-0:1", label: "0:1", multiplier: 2.90 },
+      ],
+    },
+    {
+      id: "m_btts",
+      name: "Both Teams To Score (BTTS)",
+      category: "Main",
+      info: "Will both teams score at least 1 goal?",
+      options: [
+        { id: "opt_btts_yes", label: "Yes", multiplier: Number((1.75 + (seed % 15) / 100).toFixed(2)) },
+        { id: "opt_btts_no", label: "No", multiplier: Number((2.05 + (seed % 20) / 100).toFixed(2)) },
+      ],
+    },
+    {
+      id: "m_overunder_25",
+      name: "Total Goals - Over/Under 2.5",
+      category: "Goals",
+      info: "Total goals scored by both teams combined.",
+      options: [
+        { id: "opt_over_25", label: "Over 2.5", multiplier: Number((1.85 + (seed % 15) / 100).toFixed(2)) },
+        { id: "opt_under_25", label: "Under 2.5", multiplier: Number((1.95 + (seed % 15) / 100).toFixed(2)) },
+      ],
+    },
+    {
+      id: "m_ht_ft",
+      name: "Half Time / Full Time",
+      category: "Halves",
+      info: "Predict result at Half-Time AND Full-Time.",
+      options: [
+        { id: "opt_htft_11", label: `${hShort}/${hShort}`, multiplier: Number((2.10 + (seed % 20) / 100).toFixed(2)) },
+        { id: "opt_htft_x1", label: `Draw/${hShort}`, multiplier: Number((4.50 + (seed % 40) / 100).toFixed(2)) },
+        { id: "opt_htft_22", label: `${aShort}/${aShort}`, multiplier: Number((7.50 + (seed % 90) / 100).toFixed(2)) },
+      ],
+    },
+    {
+      id: "m_corners_ou",
+      name: "Total Corners Over/Under 9.5",
+      category: "Corners",
+      info: "Total corner kicks taken by both teams.",
+      options: [
+        { id: "opt_corn_over", label: "Over 9.5", multiplier: 1.80 },
+        { id: "opt_corn_under", label: "Under 9.5", multiplier: 1.95 },
+      ],
+    },
+    {
+      id: "m_yellow_cards",
+      name: "Total Yellow Cards Over/Under 3.5",
+      category: "Cards",
+      info: "Total booking cards issued during 90 minutes.",
+      options: [
+        { id: "opt_card_over", label: "Over 3.5", multiplier: 1.70 },
+        { id: "opt_card_under", label: "Under 3.5", multiplier: 2.10 },
+      ],
+    },
+  ];
+}
+
+function MatchDetailPage() {
   const { match } = Route.useLoaderData();
-  const { toggleSelection, isSelected } = useBetrix();
-  const home = teamById(match.homeId);
-  const away = teamById(match.awayId);
-  const league = leagueById(match.leagueId);
-  const seed = Number(match.id.replace("m", ""));
+  const navigate = useNavigate();
+  const { toggleSelection, isSelected, slip } = useBetrix();
+
+  const home = teamById(match.homeId) || {
+    id: "h_fallback",
+    name: "Botafogo FC SP",
+    short: "BOT",
+    country: "Brazil",
+    leagueId: match.leagueId,
+    color: "#e11d48",
+    form: ["W", "D", "W", "L", "W"],
+    logo: "https://a.espncdn.com/i/teamlogos/soccer/500/1025.png",
+  };
+  const away = teamById(match.awayId) || {
+    id: "a_fallback",
+    name: "AA Ponte Preta SP",
+    short: "PON",
+    country: "Brazil",
+    leagueId: match.leagueId,
+    color: "#2563eb",
+    form: ["L", "W", "D", "D", "L"],
+    logo: "https://a.espncdn.com/i/teamlogos/soccer/500/1026.png",
+  };
+
+  const league = leagueById(match.leagueId) || {
+    id: match.leagueId,
+    name: "Brasileiro Serie B",
+    slug: "serie-b",
+    country: "Brazil",
+    short: "SER",
+    color: "#E5A900",
+    sportId: "football",
+    active: true,
+  };
+
+  const seed = useMemo(() => {
+    let s = 0;
+    for (let i = 0; i < match.id.length; i++) s += match.id.charCodeAt(i);
+    return s;
+  }, [match.id]);
+
+  const allMarkets = useMemo(() => generateMatchMarkets(home, away, seed), [home, away, seed]);
+
+  // Tab State: 'markets' | 'stats' | 'chat'
+  const [activeMainTab, setActiveMainTab] = useState<"markets" | "stats" | "chat">("markets");
+
+  // Category Filter State: 'All' | 'Main' | 'Goals' | 'Halves' | 'Handicap' | 'Corners' | 'Cards'
+  const [activeCategory, setActiveCategory] = useState<string>("All");
+
+  // Accordion collapsed state: marketId -> boolean
+  const [collapsedMarkets, setCollapsedMarkets] = useState<Record<string, boolean>>({});
+
+  // Favorite markets set: marketId -> boolean
+  const [starredMarkets, setStarredMarkets] = useState<Record<string, boolean>>({});
+
+  // Chat message state
+  const [chatMessages, setChatMessages] = useState<Array<{ id: string; user: string; text: string; time: string }>>([
+    { id: "1", user: "BetKing_99", text: "Botafogo is looking solid tonight! 🚀", time: "22:15" },
+    { id: "2", user: "PunterPro", text: "Over 1.5 early goals looks like easy money", time: "22:18" },
+    { id: "3", user: "Staker_GH", text: "Ponte Preta form is weak away from home", time: "22:24" },
+  ]);
+  const [newMsg, setNewMsg] = useState("");
+
+  const toggleCollapse = (marketId: string) => {
+    setCollapsedMarkets((prev) => ({ ...prev, [marketId]: !prev[marketId] }));
+  };
+
+  const toggleStar = (marketId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setStarredMarkets((prev) => ({ ...prev, [marketId]: !prev[marketId] }));
+  };
+
+  const handleSendChat = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMsg.trim()) return;
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        id: String(Date.now()),
+        user: "You",
+        text: newMsg.trim(),
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
+    setNewMsg("");
+  };
+
+  // Filtered markets
+  const filteredMarkets = useMemo(() => {
+    let list = allMarkets;
+    if (activeCategory !== "All") {
+      list = list.filter((m) => m.category === activeCategory);
+    }
+    // Sort starred to top
+    return [...list].sort((a, b) => {
+      const starA = starredMarkets[a.id] ? 1 : 0;
+      const starB = starredMarkets[b.id] ? 1 : 0;
+      return starB - starA;
+    });
+  }, [allMarkets, activeCategory, starredMarkets]);
+
+  const matchDate = useMemo(() => {
+    const d = new Date(match.kickoff);
+    const dayNum = String(d.getDate()).padStart(2, "0");
+    const monthNum = String(d.getMonth() + 1).padStart(2, "0");
+    const dayName = d.toLocaleDateString("en-US", { weekday: "long" });
+    const timeStr = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    return { dateStr: `${dayNum}/${monthNum}`, dayName, timeStr };
+  }, [match.kickoff]);
+
+  const matchCode = match.code || `ID ${Math.floor(60000 + (seed % 30000))}`;
 
   return (
-    <div className="space-y-5">
-      <header className="surface-card rounded-3xl p-5">
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <span className="h-2 w-2 rounded-[3px]" style={{ backgroundColor: league.color }} />
-            {league.name}
-          </span>
-          {match.status === "LIVE" ? (
-            <LiveBadge minute={match.minute} />
-          ) : (
-            <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
-              {match.status}
-            </Badge>
-          )}
-        </div>
+    <div className="mx-auto min-h-screen max-w-lg bg-[#0e0e11] text-white pb-24 font-sans select-none">
+      {/* Top Header Bar (Primestakers Style) */}
+      <header className="sticky top-0 z-40 flex items-center justify-between bg-[#F5C400] px-4 py-3 text-black font-semibold shadow-md">
+        <button
+          type="button"
+          onClick={() => window.history.back()}
+          className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-black/10 transition-colors"
+          aria-label="Back"
+        >
+          <ChevronLeft className="h-6 w-6 stroke-[2.5]" />
+        </button>
 
-        <div className="mt-5 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-          <div className="flex min-w-0 flex-col items-center gap-2 text-center">
-            <TeamCrest team={home} size="lg" />
-            <span className="truncate text-sm font-semibold">{home.name}</span>
-          </div>
-          <div className="text-center">
-            {match.homeScore != null ? (
-              <p className="tabular text-3xl font-extrabold">
-                {match.homeScore} <span className="text-muted-foreground">—</span> {match.awayScore}
-              </p>
-            ) : (
-              <p className="text-lg font-extrabold tracking-widest text-muted-foreground">VS</p>
-            )}
-            <p className="tabular mt-1 text-xs text-muted-foreground">
-              {formatDate(match.kickoff)} · {formatKickoff(match.kickoff)}
-            </p>
-          </div>
-          <div className="flex min-w-0 flex-col items-center gap-2 text-center">
-            <TeamCrest team={away} size="lg" />
-            <span className="truncate text-sm font-semibold">{away.name}</span>
-          </div>
-        </div>
-        <p className="mt-4 text-center text-xs text-muted-foreground">{match.venue}</p>
+        <h1 className="text-lg font-extrabold tracking-tight text-black">Details</h1>
+
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/" })}
+          className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-black/10 transition-colors"
+          aria-label="Home"
+        >
+          <Home className="h-5 w-5" />
+        </button>
       </header>
 
-      <Tabs defaultValue="predictions">
-        <TabsList className="w-full justify-start overflow-x-auto">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="predictions">Predictions</TabsTrigger>
-          <TabsTrigger value="stats">Statistics</TabsTrigger>
-          <TabsTrigger value="lineups">Lineups</TabsTrigger>
-          <TabsTrigger value="form">Form</TabsTrigger>
-        </TabsList>
+      {/* Main Match Body */}
+      <main className="p-3 space-y-3">
+        {/* League Breadcrumb */}
+        <div className="text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#F5C400] hover:underline cursor-pointer">
+            Football — {league.name}
+          </span>
+        </div>
 
-        <TabsContent value="overview" className="mt-4 space-y-3">
-          <div className="surface-card space-y-2 rounded-2xl p-4 text-sm">
-            <Row label="Competition" value={league.name} />
-            <Row label="Venue" value={match.venue} />
-            <Row label="Kickoff (server time)" value={`${formatDate(match.kickoff)} · ${formatKickoff(match.kickoff)}`} />
-            <Row label="Status" value={match.status} />
-            <Row label="Markets open" value={String(match.markets.filter((m) => m.status === "ACTIVE").length)} />
+        {/* Team Vs Team Scoreboard Box */}
+        <div className="relative overflow-hidden rounded-xl bg-[#17171c] border border-[#26262e] p-4 shadow-lg">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+            {/* Home Team */}
+            <div className="flex flex-col items-center text-center space-y-2">
+              <TeamCrest team={home} size="lg" className="h-16 w-16 drop-shadow-md" />
+              <span className="text-xs font-extrabold leading-tight text-white line-clamp-2 max-w-[110px]">
+                {home.name}
+              </span>
+            </div>
+
+            {/* Kickoff / Live Score Info */}
+            <div className="flex flex-col items-center justify-center text-center space-y-1">
+              {match.status === "LIVE" ? (
+                <>
+                  <LiveBadge minute={match.minute} />
+                  <div className="text-2xl font-black tabular-nums tracking-widest text-[#F5C400]">
+                    {match.homeScore ?? 0} - {match.awayScore ?? 0}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="text-[11px] font-semibold text-gray-400">{matchDate.dateStr}</span>
+                  <span className="text-[11px] font-semibold text-gray-400">{matchDate.dayName}</span>
+                  <span className="text-lg font-black tracking-tight text-white">{matchDate.timeStr}</span>
+                </>
+              )}
+            </div>
+
+            {/* Away Team */}
+            <div className="flex flex-col items-center text-center space-y-2">
+              <TeamCrest team={away} size="lg" className="h-16 w-16 drop-shadow-md" />
+              <span className="text-xs font-extrabold leading-tight text-white line-clamp-2 max-w-[110px]">
+                {away.name}
+              </span>
+            </div>
           </div>
-        </TabsContent>
 
-        <TabsContent value="predictions" className="mt-4 space-y-3">
-          {match.markets.map((market) => {
-            const disabled = market.status !== "ACTIVE";
-            return (
-              <section key={market.id} className="surface-card rounded-2xl p-4">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold">{market.name}</h3>
-                  {disabled ? (
-                    <Badge variant="outline" className="gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-                      <Lock className="h-3 w-3" /> {market.status}
-                    </Badge>
-                  ) : null}
+          {/* ID & Live Availability status */}
+          <div className="mt-3 flex items-center justify-center gap-2 border-t border-[#26262e] pt-2 text-[11px] font-medium text-gray-400">
+            <span>{matchCode}</span>
+            <span className="text-gray-600">|</span>
+            <span className="flex items-center gap-1 text-[#F5C400]">
+              <PlayCircle className="h-3.5 w-3.5 fill-[#F5C400]/20 text-[#F5C400]" />
+              Live In-Play Available
+            </span>
+          </div>
+        </div>
+
+        {/* Main Segmented Tabs: Markets | Stats | Chat */}
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => setActiveMainTab("markets")}
+            className={cn(
+              "flex-1 rounded-lg py-2.5 text-xs font-bold transition-all text-center",
+              activeMainTab === "markets"
+                ? "bg-white text-black shadow-md font-extrabold"
+                : "bg-[#222228] text-gray-300 hover:bg-[#2c2c34]"
+            )}
+          >
+            Markets
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveMainTab("stats")}
+            className={cn(
+              "flex-1 rounded-lg py-2.5 text-xs font-bold transition-all text-center",
+              activeMainTab === "stats"
+                ? "bg-white text-black shadow-md font-extrabold"
+                : "bg-[#222228] text-gray-300 hover:bg-[#2c2c34]"
+            )}
+          >
+            Stats
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveMainTab("chat")}
+            className={cn(
+              "flex-1 rounded-lg py-2.5 text-xs font-bold transition-all text-center",
+              activeMainTab === "chat"
+                ? "bg-white text-black shadow-md font-extrabold"
+                : "bg-[#222228] text-gray-300 hover:bg-[#2c2c34]"
+            )}
+          >
+            Chat
+          </button>
+
+          <button
+            type="button"
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#222228] text-gray-400 hover:text-white transition-colors"
+            title="Match Info"
+          >
+            <Info className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* TAB 1: MARKETS VIEW */}
+        {activeMainTab === "markets" && (
+          <div className="space-y-3">
+            {/* Category Filter Horizontal Scrollbar */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar border-b border-[#222228]">
+              <button
+                type="button"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#1f1f25] text-gray-400 hover:text-white"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#1f1f25] text-gray-400 hover:text-[#F5C400]"
+              >
+                <Star className="h-4 w-4" />
+              </button>
+
+              {["All", "Main", "Goals", "Halves", "Handicap", "Corners", "Cards"].map((cat) => {
+                const isActive = activeCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setActiveCategory(cat)}
+                    className={cn(
+                      "relative shrink-0 px-3 py-1.5 text-xs font-bold transition-colors rounded-md",
+                      isActive ? "text-white bg-[#1f1f25]" : "text-gray-400 hover:text-gray-200"
+                    )}
+                  >
+                    {cat}
+                    {isActive && (
+                      <span className="absolute bottom-0 left-2 right-2 h-[2.5px] rounded-full bg-[#F5C400]" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Markets Accordion List */}
+            <div className="space-y-2.5">
+              {filteredMarkets.length === 0 ? (
+                <div className="py-8 text-center text-xs text-gray-400">
+                  No markets found for "{activeCategory}" category.
                 </div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {market.options.map((opt) => {
-                    const active = isSelected(match.id, market.id, opt.id);
+              ) : (
+                filteredMarkets.map((market) => {
+                  const isCollapsed = collapsedMarkets[market.id];
+                  const isStarred = starredMarkets[market.id];
+
+                  if (market.id === "m_correct_score") {
                     return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        disabled={disabled}
-                        aria-pressed={active}
-                        onClick={() =>
-                          toggleSelection({
-                            matchId: match.id,
-                            marketId: market.id,
-                            marketName: market.name,
-                            optionId: opt.id,
-                            optionLabel: opt.label,
-                            multiplier: opt.multiplier,
-                          })
-                        }
-                        className={cn(
-                          "flex items-center justify-between gap-2 rounded-xl border border-border bg-surface-2/60 px-3 py-3 text-left transition-all duration-150 active:scale-[0.98]",
-                          "disabled:cursor-not-allowed disabled:opacity-40",
-                          active ? "border-primary bg-primary text-primary-foreground" : "hover:border-primary/50",
-                        )}
-                      >
-                        <span className="truncate text-xs font-semibold">{opt.label}</span>
-                        <span className="tabular text-sm font-extrabold">{opt.multiplier.toFixed(2)}</span>
-                      </button>
+                      <CorrectScoreMarketCard
+                        key={market.id}
+                        matchId={match.id}
+                        homeName={home.name}
+                        awayName={away.name}
+                        starred={isStarred}
+                        isCollapsed={isCollapsed}
+                        onToggleCollapse={() => toggleCollapse(market.id)}
+                        onStarToggle={(e) => toggleStar(market.id, e)}
+                        isSelected={isSelected}
+                        toggleSelection={toggleSelection}
+                      />
                     );
-                  })}
-                </div>
-              </section>
-            );
-          })}
-        </TabsContent>
+                  }
 
-        <TabsContent value="stats" className="mt-4">
-          <div className="surface-card space-y-4 rounded-2xl p-5">
-            <StatBar label="Possession %" home={48 + (seed % 8)} away={52 - (seed % 8)} />
-            <StatBar label="Shots" home={9 + (seed % 5)} away={7 + (seed % 4)} />
-            <StatBar label="Shots on target" home={4 + (seed % 3)} away={3 + (seed % 3)} />
-            <StatBar label="Corners" home={5 + (seed % 4)} away={4 + (seed % 3)} />
-            <StatBar label="Fouls" home={10 + (seed % 4)} away={12 - (seed % 4)} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="lineups" className="mt-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            {[home, away].map((team) => (
-              <div key={team.id} className="surface-card rounded-2xl p-4">
-                <div className="flex items-center gap-2">
-                  <TeamCrest team={team} size="sm" />
-                  <p className="truncate text-sm font-semibold">{team.name}</p>
-                  <span className="ml-auto text-xs text-muted-foreground">4-3-3</span>
-                </div>
-                <ul className="mt-3 space-y-1.5 text-sm">
-                  {Array.from({ length: 11 }).map((_, i) => (
-                    <li key={i} className="flex items-center gap-3 border-b border-border/50 py-1 last:border-0">
-                      <span className="tabular w-6 text-xs text-muted-foreground">{i + 1}</span>
-                      <span className="truncate">
-                        {team.short} Player {i + 1}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="form" className="mt-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            {[home, away].map((team) => (
-              <div key={team.id} className="surface-card rounded-2xl p-4">
-                <p className="text-sm font-semibold">{team.name}</p>
-                <p className="text-xs text-muted-foreground">Last 5 matches</p>
-                <div className="mt-3 flex gap-1.5">
-                  {team.form.map((f, i) => (
-                    <span
-                      key={i}
-                      className={cn(
-                        "grid h-8 w-8 place-items-center rounded-lg text-xs font-bold",
-                        f === "W" ? "bg-success/20 text-success" : f === "D" ? "bg-muted text-muted-foreground" : "bg-destructive/20 text-destructive",
-                      )}
+                  return (
+                    <div
+                      key={market.id}
+                      className="overflow-hidden rounded-xl border border-[#25252c] bg-[#16161a] transition-all"
                     >
-                      {f}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
+                      {/* Market Accordion Bar */}
+                      <div
+                        onClick={() => toggleCollapse(market.id)}
+                        className="flex cursor-pointer items-center justify-between bg-[#1d1d23] px-3 py-2.5 text-xs font-bold text-gray-100 hover:bg-[#23232b] transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {isCollapsed ? (
+                            <ChevronDown className="h-4 w-4 text-[#F5C400] shrink-0" />
+                          ) : (
+                            <ChevronUp className="h-4 w-4 text-[#F5C400] shrink-0" />
+                          )}
+                          <span className="truncate text-xs font-extrabold tracking-tight">{market.name}</span>
+                          {market.info && (
+                            <Info className="h-3 w-3 text-gray-500 hover:text-gray-300 shrink-0" title={market.info} />
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => toggleStar(market.id, e)}
+                          className="flex h-6 w-6 items-center justify-center text-gray-500 hover:text-[#F5C400] transition-colors"
+                        >
+                          <Star className={cn("h-3.5 w-3.5", isStarred && "fill-[#F5C400] text-[#F5C400]")} />
+                        </button>
+                      </div>
+
+                      {/* Market Options Odds Grid */}
+                      {!isCollapsed && (
+                        <div className="p-2.5">
+                          <div
+                            className={cn(
+                              "grid gap-2",
+                              market.options.length === 3 ? "grid-cols-3" : "grid-cols-2"
+                            )}
+                          >
+                            {market.options.map((opt) => {
+                              const active = isSelected(match.id, market.id, opt.id);
+
+                              return (
+                                <button
+                                  key={opt.id}
+                                  type="button"
+                                  onClick={() =>
+                                    toggleSelection({
+                                      matchId: match.id,
+                                      marketId: market.id,
+                                      marketName: market.name,
+                                      optionId: opt.id,
+                                      optionLabel: opt.label,
+                                      multiplier: opt.multiplier,
+                                    })
+                                  }
+                                  className={cn(
+                                    "group relative flex flex-col justify-between rounded-lg border p-2.5 text-left transition-all duration-150 active:scale-[0.97]",
+                                    active
+                                      ? "border-[#F5C400] bg-[#292200] shadow-[0_0_12px_rgba(245,196,0,0.25)]"
+                                      : "border-[#272730] bg-[#1a1a20] hover:border-[#383845] hover:bg-[#202028]"
+                                  )}
+                                >
+                                  {/* Label on top */}
+                                  <span className="truncate text-[11px] font-semibold text-gray-400 group-hover:text-gray-200">
+                                    {opt.label}
+                                  </span>
+
+                                  {/* Multiplier / Odds value at bottom right */}
+                                  <div className="mt-1 flex items-center justify-end">
+                                    <span
+                                      className={cn(
+                                        "text-sm font-black tabular-nums tracking-tight",
+                                        active ? "text-[#F5C400]" : "text-[#F5C400]"
+                                      )}
+                                    >
+                                      {opt.multiplier.toFixed(2)}
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
+
+        {/* TAB 2: STATS VIEW */}
+        {activeMainTab === "stats" && (
+          <div className="space-y-3 rounded-xl border border-[#25252c] bg-[#16161a] p-4 text-xs">
+            <h2 className="text-sm font-extrabold text-[#F5C400] flex items-center gap-2">
+              <BarChart2 className="h-4 w-4" /> Live Match Statistics
+            </h2>
+
+            <div className="space-y-3 pt-2">
+              <StatBar label="Possession %" home={52 + (seed % 10)} away={48 - (seed % 10)} homeName={home.short} awayName={away.short} />
+              <StatBar label="Total Shots" home={11 + (seed % 6)} away={8 + (seed % 4)} homeName={home.short} awayName={away.short} />
+              <StatBar label="Shots on Target" home={5 + (seed % 3)} away={3 + (seed % 2)} homeName={home.short} awayName={away.short} />
+              <StatBar label="Corner Kicks" home={6 + (seed % 4)} away={4 + (seed % 3)} homeName={home.short} awayName={away.short} />
+              <StatBar label="Fouls Committed" home={12 + (seed % 5)} away={14 - (seed % 4)} homeName={home.short} awayName={away.short} />
+              <StatBar label="Yellow Cards" home={2} away={1} homeName={home.short} awayName={away.short} />
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: LIVE CHAT VIEW */}
+        {activeMainTab === "chat" && (
+          <div className="flex flex-col h-[400px] rounded-xl border border-[#25252c] bg-[#16161a] p-3 text-xs">
+            <div className="flex items-center gap-2 border-b border-[#25252c] pb-2 text-sm font-extrabold text-[#F5C400]">
+              <MessageSquare className="h-4 w-4" /> Fan Match Chat
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2 py-3 pr-1">
+              {chatMessages.map((msg) => (
+                <div key={msg.id} className="rounded-lg bg-[#1e1e26] p-2.5 space-y-0.5">
+                  <div className="flex items-center justify-between text-[10px] text-gray-400">
+                    <span className="font-bold text-[#F5C400]">{msg.user}</span>
+                    <span>{msg.time}</span>
+                  </div>
+                  <p className="text-xs text-gray-100">{msg.text}</p>
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={handleSendChat} className="flex gap-2 pt-2 border-t border-[#25252c]">
+              <input
+                type="text"
+                placeholder="Share your prediction or comment..."
+                value={newMsg}
+                onChange={(e) => setNewMsg(e.target.value)}
+                className="flex-1 rounded-lg bg-[#22222b] px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#F5C400]"
+              />
+              <button
+                type="submit"
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F5C400] text-black hover:bg-[#e0b300] font-bold"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </form>
+          </div>
+        )}
+      </main>
+
+      {/* Floating Betslip Circle Indicator (Primestakers Style) */}
+      {slip.length > 0 && (
+        <div className="fixed bottom-16 right-4 z-50 animate-bounce">
+          <button
+            type="button"
+            onClick={() => {
+              // Open slip modal or scroll to slip
+              const el = document.getElementById("betslip-trigger");
+              if (el) el.click();
+            }}
+            className="flex flex-col items-center justify-center h-14 w-14 rounded-full bg-[#F5C400] text-black font-black shadow-[0_4px_20px_rgba(245,196,0,0.5)] border-2 border-white hover:scale-105 transition-transform"
+          >
+            <span className="text-lg leading-none">{slip.length}</span>
+            <span className="text-[8px] font-extrabold uppercase tracking-tighter">BETSLIP</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function StatBar({
+  label,
+  home,
+  away,
+  homeName,
+  awayName,
+}: {
+  label: string;
+  home: number;
+  away: number;
+  homeName: string;
+  awayName: string;
+}) {
+  const total = home + away || 1;
+  const homePct = Math.round((home / total) * 100);
+  const awayPct = 100 - homePct;
+
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-border/50 py-2 last:border-0">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="truncate font-medium">{value}</span>
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[11px] font-semibold text-gray-300">
+        <span>
+          {homeName} <strong className="text-white ml-1">{home}</strong>
+        </span>
+        <span className="text-gray-500 uppercase tracking-wider text-[10px]">{label}</span>
+        <span>
+          <strong className="text-white mr-1">{away}</strong> {awayName}
+        </span>
+      </div>
+      <div className="flex h-2 overflow-hidden rounded-full bg-[#262630]">
+        <div className="bg-[#F5C400] transition-all duration-500" style={{ width: `${homePct}%` }} />
+        <div className="bg-[#3b82f6] transition-all duration-500" style={{ width: `${awayPct}%` }} />
+      </div>
     </div>
+  );
+}
+
+function CorrectScoreMarketCard({
+  matchId,
+  homeName,
+  awayName,
+  starred,
+  isCollapsed,
+  onToggleCollapse,
+  onStarToggle,
+  isSelected,
+  toggleSelection,
+}: {
+  matchId: string;
+  homeName: string;
+  awayName: string;
+  starred?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse: () => void;
+  onStarToggle: (e: React.MouseEvent) => void;
+  isSelected: (mId: string, mktId: string, optId: string) => boolean;
+  toggleSelection: (sel: any) => void;
+}) {
+  const homeScores = [
+    { label: "1:0", odds: 9.00 },
+    { label: "2:0", odds: 100.00 },
+    { label: "3:0", odds: 100.00 },
+    { label: "4:0", odds: 100.00 },
+    { label: "2:1", odds: 100.00 },
+    { label: "3:1", odds: 100.00 },
+    { label: "4:1", odds: 100.00 },
+    { label: "3:2", odds: 100.00 },
+    { label: "4:2", odds: 100.00 },
+    { label: "4:3", odds: 100.00 },
+  ];
+
+  const drawScores = [
+    { label: "0:0", odds: 1.07 },
+    { label: "1:1", odds: 50.00 },
+    { label: "2:2", odds: 100.00 },
+    { label: "3:3", odds: 100.00 },
+    { label: "4:4", odds: 0 },
+  ];
+
+  const awayScores = [
+    { label: "0:1", odds: 2.90 },
+    { label: "0:2", odds: 27.00 },
+    { label: "0:3", odds: 100.00 },
+    { label: "0:4", odds: 100.00 },
+    { label: "1:2", odds: 100.00 },
+    { label: "1:3", odds: 100.00 },
+    { label: "1:4", odds: 100.00 },
+    { label: "2:3", odds: 100.00 },
+    { label: "2:4", odds: 100.00 },
+    { label: "3:4", odds: 100.00 },
+  ];
+
+  const maxRows = Math.max(homeScores.length, drawScores.length, awayScores.length);
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-[#25252c] bg-[#12141a] transition-all">
+      {/* Accordion Header Bar */}
+      <div
+        onClick={onToggleCollapse}
+        className="flex cursor-pointer items-center justify-between bg-[#1d1d23] px-3 py-2.5 text-xs font-bold text-gray-100 hover:bg-[#23232b] transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          {isCollapsed ? (
+            <ChevronDown className="h-4 w-4 text-[#F5C400]" />
+          ) : (
+            <ChevronUp className="h-4 w-4 text-[#F5C400]" />
+          )}
+          <span className="font-extrabold text-sm text-white">Correct Score</span>
+          <Info className="h-3.5 w-3.5 text-gray-500 hover:text-gray-300" title="Predict exact final score" />
+        </div>
+        <button type="button" onClick={onStarToggle} className="text-gray-500 hover:text-[#F5C400]">
+          <Star className={cn("h-4 w-4", starred && "fill-[#F5C400] text-[#F5C400]")} />
+        </button>
+      </div>
+
+      {!isCollapsed && (
+        <div className="p-3 space-y-2 bg-[#0c0e14]">
+          {/* 3 Column Team Headers */}
+          <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold text-gray-400 pb-1">
+            <span className="truncate px-1 text-gray-300">{homeName}</span>
+            <span className="text-gray-300">Draw</span>
+            <span className="truncate px-1 text-gray-300">{awayName}</span>
+          </div>
+
+          {/* 3 Column Grid Rows */}
+          <div className="space-y-1.5">
+            {Array.from({ length: maxRows }).map((_, idx) => {
+              const hItem = homeScores[idx];
+              const dItem = drawScores[idx];
+              const aItem = awayScores[idx];
+
+              return (
+                <div key={idx} className="grid grid-cols-3 gap-2">
+                  {/* Home Column */}
+                  {hItem ? (
+                    <ScoreButton
+                      matchId={matchId}
+                      score={hItem.label}
+                      odds={hItem.odds}
+                      isSelected={isSelected}
+                      toggleSelection={toggleSelection}
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {/* Draw Column */}
+                  {dItem ? (
+                    <ScoreButton
+                      matchId={matchId}
+                      score={dItem.label}
+                      odds={dItem.odds}
+                      isSelected={isSelected}
+                      toggleSelection={toggleSelection}
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {/* Away Column */}
+                  {aItem ? (
+                    <ScoreButton
+                      matchId={matchId}
+                      score={aItem.label}
+                      odds={aItem.odds}
+                      isSelected={isSelected}
+                      toggleSelection={toggleSelection}
+                    />
+                  ) : (
+                    <div />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ScoreButton({
+  matchId,
+  score,
+  odds,
+  isSelected,
+  toggleSelection,
+}: {
+  matchId: string;
+  score: string;
+  odds: number;
+  isSelected: (mId: string, mktId: string, optId: string) => boolean;
+  toggleSelection: (sel: any) => void;
+}) {
+  const optId = `cs-${score}`;
+  const active = isSelected(matchId, "m_correct_score", optId);
+  const disabled = odds <= 0;
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() =>
+        toggleSelection({
+          matchId,
+          marketId: "m_correct_score",
+          marketName: "Correct Score",
+          optionId: optId,
+          optionLabel: score,
+          multiplier: odds,
+        })
+      }
+      className={cn(
+        "h-10 px-2.5 rounded-lg border flex items-center justify-between text-xs font-bold transition-all active:scale-95",
+        disabled
+          ? "bg-[#141720]/60 border-[#1f2638]/60 text-gray-600 cursor-not-allowed"
+          : active
+          ? "bg-[#F5C400] border-[#F5C400] text-black font-black shadow-md shadow-[#F5C400]/20"
+          : "bg-[#11141c] border-[#252c3d] text-gray-200 hover:border-[#F5C400]/60 hover:bg-[#181d29]"
+      )}
+    >
+      <span className={cn("font-bold text-xs", active ? "text-black font-black" : "text-gray-300")}>
+        {score}
+      </span>
+      <span className={cn("font-black text-xs font-mono", active ? "text-black" : "text-[#F5C400]")}>
+        {disabled ? "—" : odds.toFixed(2)}
+      </span>
+    </button>
   );
 }

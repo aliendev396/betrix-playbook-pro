@@ -6,11 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   formatDate,
   leagueBySlug,
-  matches,
   standingsFor,
   teamById,
   teams,
 } from "@/data/football";
+import { useBetrix } from "@/store/betrix";
 
 export const Route = createFileRoute("/leagues/$slug")({
   loader: ({ params }) => {
@@ -37,8 +37,10 @@ export const Route = createFileRoute("/leagues/$slug")({
 
 function LeaguePage() {
   const { league } = Route.useLoaderData();
-  const fixtures = matches.filter((m) => m.leagueId === league.id && m.status === "SCHEDULED");
-  const results = matches.filter((m) => m.leagueId === league.id && m.status === "FINISHED");
+  const { allMatches } = useBetrix();
+
+  const fixtures = allMatches.filter((m) => m.leagueId === league.id && (m.status === "SCHEDULED" || m.status === "LIVE"));
+  const results = allMatches.filter((m) => m.leagueId === league.id && m.status === "FINISHED");
   const table = standingsFor(league.id);
   const squad = teams.filter((t) => t.leagueId === league.id);
 

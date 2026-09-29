@@ -34,12 +34,12 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="surface-card flex flex-col items-center rounded-2xl px-6 py-12 text-center">
-      <div className="grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">
+    <div className="bg-white border border-gray-200 shadow-sm flex flex-col items-center rounded-2xl px-6 py-12 text-center">
+      <div className="grid h-12 w-12 place-items-center rounded-full bg-gray-100 text-gray-400">
         {icon ?? <Inbox className="h-5 w-5" />}
       </div>
-      <h3 className="mt-4 text-base font-semibold">{title}</h3>
-      {description ? <p className="mt-1 max-w-sm text-sm text-muted-foreground">{description}</p> : null}
+      <h3 className="mt-4 text-base font-semibold text-gray-900">{title}</h3>
+      {description ? <p className="mt-1 max-w-sm text-sm text-gray-500">{description}</p> : null}
       {action ? <div className="mt-5">{action}</div> : null}
     </div>
   );
@@ -47,16 +47,16 @@ export function EmptyState({
 
 export function ErrorState({ onRetry, message }: { onRetry?: () => void; message?: string }) {
   return (
-    <div className="surface-card flex flex-col items-center rounded-2xl px-6 py-12 text-center">
-      <div className="grid h-12 w-12 place-items-center rounded-full bg-destructive/15 text-destructive">
+    <div className="bg-white border border-gray-200 shadow-sm flex flex-col items-center rounded-2xl px-6 py-12 text-center">
+      <div className="grid h-12 w-12 place-items-center rounded-full bg-red-100 text-[#E41B23]">
         <AlertTriangle className="h-5 w-5" />
       </div>
-      <h3 className="mt-4 text-base font-semibold">Something went wrong</h3>
-      <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+      <h3 className="mt-4 text-base font-semibold text-gray-900">Something went wrong</h3>
+      <p className="mt-1 max-w-sm text-sm text-gray-500">
         {message ?? "We couldn't load this data. Please try again."}
       </p>
       {onRetry ? (
-        <Button variant="outline" className="mt-5" onClick={onRetry}>
+        <Button variant="outline" className="mt-5 border-gray-200 text-gray-700 hover:text-gray-900" onClick={onRetry}>
           <RotateCw className="mr-2 h-4 w-4" /> Try again
         </Button>
       ) : null}

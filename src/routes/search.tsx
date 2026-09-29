@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { EmptyState, SectionHeading } from "@/components/common/States";
 import { TeamCrest } from "@/components/common/TeamCrest";
-import { formatDate, formatKickoff, leagues, matches, teamById, teams, leagueById } from "@/data/football";
+import { formatDate, formatKickoff, leagues, teamById, teams, leagueById } from "@/data/football";
+import { useBetrix } from "@/store/betrix";
 
 export const Route = createFileRoute("/search")({
   head: () => ({
@@ -21,13 +22,14 @@ export const Route = createFileRoute("/search")({
 function SearchPage() {
   const [q, setQ] = useState("");
   const query = q.trim().toLowerCase();
+  const { allMatches } = useBetrix();
 
   const results = useMemo(() => {
     if (query.length < 2) return null;
     return {
       teams: teams.filter((t) => t.name.toLowerCase().includes(query) || t.short.toLowerCase().includes(query)).slice(0, 8),
       leagues: leagues.filter((l) => l.name.toLowerCase().includes(query) || l.country.toLowerCase().includes(query)),
-      matches: matches
+      matches: allMatches
         .filter((m) => {
           const h = teamById(m.homeId);
           const a = teamById(m.awayId);
@@ -35,7 +37,7 @@ function SearchPage() {
         })
         .slice(0, 10),
     };
-  }, [query]);
+  }, [query, allMatches]);
 
   return (
     <div className="space-y-4">

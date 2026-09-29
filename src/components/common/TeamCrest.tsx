@@ -16,6 +16,21 @@ export function TeamCrest({
   size?: keyof typeof sizes;
   className?: string;
 }) {
+  if (team?.logo) {
+    return (
+      <span
+        aria-hidden
+        className={cn(
+          "inline-flex shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white p-0.5 overflow-hidden shadow-xs",
+          sizes[size],
+          className,
+        )}
+      >
+        <img src={team.logo} alt={team.name} className="h-full w-full object-contain" />
+      </span>
+    );
+  }
+
   return (
     <span
       aria-hidden
@@ -24,9 +39,9 @@ export function TeamCrest({
         sizes[size],
         className,
       )}
-      style={{ backgroundColor: team.color, textShadow: "0 1px 2px rgba(0,0,0,.45)" }}
+      style={{ backgroundColor: team?.color || "#333", textShadow: "0 1px 2px rgba(0,0,0,.45)" }}
     >
-      {team.short}
+      {team?.short || "TM"}
     </span>
   );
 }

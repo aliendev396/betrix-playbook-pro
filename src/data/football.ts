@@ -1,4 +1,5 @@
 export type MatchStatus = "SCHEDULED" | "LIVE" | "FINISHED" | "POSTPONED" | "CANCELLED";
+import { dynamicTeams, dynamicLeagues, dynamicMatchesMap } from "@/services/sportsApi";
 
 export interface Sport {
   id: string;
@@ -29,6 +30,7 @@ export interface Team {
   color: string;
   /** Simple form string, most recent first */
   form: string[];
+  logo?: string;
 }
 
 export interface MarketOption {
@@ -46,6 +48,7 @@ export interface Market {
 
 export interface Match {
   id: string;
+  code?: string; // e.g. #74497
   leagueId: string;
   sportId: string;
   homeId: string;
@@ -148,8 +151,31 @@ export const teams: Team[] = [
   t("t46", "Daniil Medvedev", "MED", "Russia", "l11", "#7A2E8E", "LWWWL"),
 ];
 
-export const teamById = (id: string) => teams.find((x) => x.id === id)!;
-export const leagueById = (id: string) => leagues.find((x) => x.id === id)!;
+export const teamById = (id: string): Team =>
+  teams.find((x) => x.id === id) ||
+  dynamicTeams.get(id) || {
+    id,
+    name: id.includes("team") ? "Sports Team" : id,
+    short: "TM",
+    country: "International",
+    leagueId: "l1",
+    color: "#3B82F6",
+    form: ["W", "D", "W", "L", "W"],
+  };
+
+export const leagueById = (id: string): League =>
+  leagues.find((x) => x.id === id) ||
+  dynamicLeagues.get(id) || {
+    id,
+    slug: "global-league",
+    name: "Live League",
+    country: "International",
+    short: "LIVE",
+    color: "#E41B23",
+    sportId: "football",
+    active: true,
+  };
+
 export const leagueBySlug = (slug: string) => leagues.find((x) => x.slug === slug);
 
 function markets(seed: number, draw: boolean): Market[] {
@@ -319,7 +345,7 @@ export const matches: Match[] = pairs.map(([homeId, awayId, leagueId, day, statu
   };
 });
 
-export const matchById = (id: string) => matches.find((m) => m.id === id);
+export const matchById = (id: string) => matches.find((m) => m.id === id) || dynamicMatchesMap.get(id);
 export const liveMatches = () => matches.filter((m) => m.status === "LIVE");
 export const upcomingMatches = () =>
   matches

@@ -14,25 +14,25 @@ export function MatchCard({ match, compact = false }: { match: Match; compact?: 
   const disabled = market.status !== "ACTIVE" || match.status !== "SCHEDULED";
 
   return (
-    <article className="surface-card rounded-2xl p-3.5 transition-colors hover:border-primary/40 sm:p-4">
+    <article className="bg-white border border-gray-200 rounded-2xl p-3.5 transition-all hover:border-red-200 hover:shadow-md sm:p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2">
         <LeagueBadge name={league.name} color={league.color} />
-        <span className="tabular text-xs font-medium text-muted-foreground">{formatKickoff(match.kickoff)}</span>
+        <span className="font-mono text-xs font-bold text-gray-400">{formatKickoff(match.kickoff)}</span>
       </div>
 
       <Link
         to="/match/$matchId"
         params={{ matchId: match.id }}
-        className="mt-3 block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="mt-3 block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[#E41B23]"
       >
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <TeamCrest team={home} size={compact ? "sm" : "md"} />
-            <span className="truncate text-sm font-semibold">{compact ? home.short : home.name}</span>
+            <span className="truncate text-sm font-extrabold text-gray-900">{compact ? home.short : home.name}</span>
           </div>
-          <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">vs</span>
+          <span className="text-[11px] font-black uppercase tracking-widest text-gray-300">VS</span>
           <div className="flex min-w-0 items-center justify-end gap-2">
-            <span className="truncate text-right text-sm font-semibold">{compact ? away.short : away.name}</span>
+            <span className="truncate text-right text-sm font-extrabold text-gray-900">{compact ? away.short : away.name}</span>
             <TeamCrest team={away} size={compact ? "sm" : "md"} />
           </div>
         </div>
@@ -58,17 +58,17 @@ export function MatchCard({ match, compact = false }: { match: Match; compact?: 
                 })
               }
               className={cn(
-                "group flex flex-col items-center rounded-xl border border-border bg-surface-2/60 px-2 py-2 transition-all duration-150 active:scale-[0.97]",
+                "group flex flex-col items-center rounded-xl border px-2 py-2 transition-all duration-150 active:scale-[0.97]",
                 "disabled:cursor-not-allowed disabled:opacity-40",
                 active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "hover:border-primary/50 hover:bg-surface-2",
+                  ? "border-[#E41B23] bg-[#E41B23] text-white shadow-md"
+                  : "border-gray-200 bg-gray-50 text-gray-700 hover:border-red-200 hover:bg-red-50",
               )}
             >
-              <span className={cn("text-[10px] font-medium uppercase tracking-wider", active ? "text-primary-foreground/80" : "text-muted-foreground")}>
+              <span className={cn("text-[10px] font-extrabold uppercase tracking-wider", active ? "text-white" : "text-gray-500")}>
                 {opt.label}
               </span>
-              <span className="tabular text-sm font-bold">
+              <span className="font-mono text-sm font-black">
                 {disabled ? <Lock className="h-3.5 w-3.5" /> : opt.multiplier.toFixed(2)}
               </span>
             </button>

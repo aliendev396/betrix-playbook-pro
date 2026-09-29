@@ -1,74 +1,128 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { MatchCard } from "@/components/match/MatchCard";
+import { PrimeMatchCard } from "@/components/match/PrimeMatchCard";
+import { PrimeDateHeader, generateDateOptions, type DateOption } from "@/components/match/PrimeDateHeader";
 import { EmptyState } from "@/components/common/States";
 import { cn } from "@/lib/utils";
-import { dayBucket, leagues, upcomingMatches } from "@/data/football";
+import { leagues, type Match } from "@/data/football";
+import { useBetrix } from "@/store/betrix";
+import { fetchLiveSportsFixtures } from "@/services/sportsApi";
+import { Globe, RotateCw } from "lucide-react";
 
 export const Route = createFileRoute("/matches")({
   head: () => ({
     meta: [
-      { title: "Football Fixtures — BETRIX" },
-      { name: "description", content: "Browse upcoming football fixtures by day and league, then build your prediction slip." },
-      { property: "og:title", content: "Football Fixtures — BETRIX" },
-      { property: "og:description", content: "Today, tomorrow and upcoming football fixtures with prediction markets." },
+      { title: "Sports Fixtures & Live Odds — BETRIX" },
+      { name: "description", content: "Up to date live match fixtures, dynamic odds, and daily sports schedule on BETRIX." },
+      { property: "og:title", content: "Sports Fixtures — BETRIX" },
+      { property: "og:description", content: "Today and upcoming sports fixtures with real-time prediction markets." },
     ],
   }),
   component: MatchesPage,
 });
 
-const buckets = ["Today", "Tomorrow", "Upcoming"] as const;
+export function MatchesPage() {
+  const dateOptions = generateDateOptions();
+  const [selectedDate, setSelectedDate] = useState<DateOption>(dateOptions[0]!);
+  const [selectedLeague, setSelectedLeague] = useState<string>("all");
 
-function MatchesPage() {
-  const [league, setLeague] = useState<string>("all");
-  const all = upcomingMatches().filter((m) => league === "all" || m.leagueId === league);
+  const { allMatches, isApiLoading, fetchApiMatches, apiMatches } = useBetrix();
+  const [dateMatches, setDateMatches] = useState<Match[]>([]);
+  const [loadingDate, setLoadingDate] = useState<boolean>(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadDateFixtures() {
+      setLoadingDate(true);
+      try {
+        const res = await fetchLiveSportsFixtures(undefined, selectedDate.espnParam);
+        if (!cancelled) {
+          setDateMatches(res.matches);
+        }
+      } catch {
+        // fallback
+      } finally {
+        if (!cancelled) setLoadingDate(false);
+      }
+    }
+    loadDateFixtures();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDate]);
+
+  // Combine store matches with date-specific matches
+  const currentList = dateMatches.length > 0 ? dateMatches : allMatches;
+
+  const filtered = currentList.filter((m) => {
+    if (selectedLeague !== "all" && m.leagueId !== selectedLeague) return false;
+    return true;
+  });
+
+  const liveCount = currentList.filter((m) => m.status === "LIVE").length;
 
   return (
-    <div className="space-y-5">
-      <header>
-        <h1 className="text-2xl font-extrabold">Matches</h1>
-        <p className="text-sm text-muted-foreground">Select outcomes to add them to your prediction slip.</p>
-      </header>
+    <div className="flex flex-col min-h-screen bg-[#0f0f10] text-[#f4f4f5]">
+      {/* Primestakers Header Bar */}
+      <PrimeDateHeader
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
+        matchCount={filtered.length}
+        liveCount={liveCount}
+      />
 
-      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 lg:mx-0 lg:px-0">
-        {[{ id: "all", name: "All leagues", color: "#9EE93B" }, ...leagues].map((l) => (
+      {/* Main Container */}
+      <div className="p-3 sm:p-4 space-y-4 max-w-5xl mx-auto w-full">
+        {/* Subheader controls & League Filter */}
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-[#18181b] p-2.5 rounded-xl border border-[#27272a]">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+            {[{ id: "all", name: "All Leagues", color: "#eab308" }, ...leagues].map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => setSelectedLeague(l.id)}
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-extrabold transition-all",
+                  selectedLeague === l.id
+                    ? "border-[#eab308] bg-[#eab308] text-black font-black"
+                    : "border-[#27272a] bg-[#27272a] text-[#a1a1aa] hover:border-[#3f3f46] hover:text-white",
+                )}
+              >
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: l.color }} />
+                {l.name}
+              </button>
+            ))}
+          </div>
+
           <button
-            key={l.id}
-            type="button"
-            onClick={() => setLeague(l.id)}
-            className={cn(
-              "flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors",
-              league === l.id
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-surface text-muted-foreground hover:border-primary/40 hover:text-foreground",
-            )}
+            onClick={() => fetchApiMatches()}
+            disabled={isApiLoading || loadingDate}
+            className="inline-flex items-center gap-1.5 text-xs font-extrabold bg-[#27272a] hover:bg-[#3f3f46] text-[#eab308] px-3 py-1.5 rounded-lg border border-[#3f3f46] transition-all disabled:opacity-50 ml-auto shrink-0"
           >
-            <span className="h-2.5 w-2.5 rounded-[4px]" style={{ backgroundColor: l.color }} />
-            {l.name}
+            <RotateCw className={cn("w-3.5 h-3.5", (isApiLoading || loadingDate) && "animate-spin text-[#eab308]")} />
+            {isApiLoading || loadingDate ? "Syncing..." : "Sync Live API"}
           </button>
-        ))}
-      </div>
-
-      {all.length === 0 ? (
-        <EmptyState title="No upcoming matches available." description="Try a different league filter." />
-      ) : (
-        <div className="space-y-6">
-          {buckets.map((b) => {
-            const group = all.filter((m) => dayBucket(m.kickoff) === b);
-            if (group.length === 0) return null;
-            return (
-              <section key={b}>
-                <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">{b}</h2>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {group.map((m) => (
-                    <MatchCard key={m.id} match={m} />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
         </div>
-      )}
+
+        {/* Fixtures List */}
+        {loadingDate ? (
+          <div className="text-center py-16 bg-[#18181b] rounded-xl border border-[#27272a] text-[#a1a1aa]">
+            <RotateCw className="w-6 h-6 animate-spin text-[#eab308] mx-auto mb-2" />
+            <p className="text-xs font-bold uppercase tracking-wider">Loading Live Fixtures for {selectedDate.dayName}...</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            title={`No fixtures found for ${selectedDate.dayName}`}
+            description="Try selecting another date or league filter."
+          />
+        ) : (
+          <div className="space-y-2.5">
+            {filtered.map((m) => (
+              <PrimeMatchCard key={m.id} match={m} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

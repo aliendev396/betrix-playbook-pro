@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Activity, ArrowLeft, ShieldCheck, Users2, Ticket, Trophy } from "lucide-react";
+import { Activity, ArrowLeft, ShieldCheck, Users2, Ticket, Trophy, Globe, RotateCw, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BetrixWordmark } from "@/components/brand/Logo";
 import { EmptyState, SectionHeading } from "@/components/common/States";
 import { adminUsers, auditLog, growthSeries, partners } from "@/data/admin";
-import { matches, teamById, leagueById } from "@/data/football";
-import { formatPoints } from "@/store/betrix";
+import { teamById, leagueById } from "@/data/football";
+import { formatPoints, useBetrix } from "@/store/betrix";
+import { FREE_SPORTS_SOURCES } from "@/services/sportsApi";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({
@@ -26,6 +27,18 @@ export const Route = createFileRoute("/admin")({
 
 function AdminPage() {
   const [q, setQ] = useState("");
+  const {
+    allMatches,
+    apiMatches,
+    isApiLoading,
+    fetchApiMatches,
+    lastApiUpdate,
+    apiLiveCount,
+    apiSourcesFetched,
+    enableLiveApi,
+    setEnableLiveApi,
+  } = useBetrix();
+
   const filteredUsers = adminUsers.filter((u) =>
     `${u.name} ${u.username} ${u.email}`.toLowerCase().includes(q.trim().toLowerCase()),
   );
@@ -34,8 +47,8 @@ function AdminPage() {
   const stats = [
     { label: "Total users", value: "4,812", icon: Users2 },
     { label: "Slips this week", value: "4,190", icon: Ticket },
-    { label: "Live matches", value: String(matches.filter((m) => m.status === "LIVE").length), icon: Activity },
-    { label: "Points in play", value: formatPoints(1284000), icon: Trophy },
+    { label: "Live matches", value: String(allMatches.filter((m) => m.status === "LIVE").length), icon: Activity },
+    { label: "API Fixtures Loaded", value: String(apiMatches.length), icon: Globe },
   ];
 
   return (
@@ -70,6 +83,7 @@ function AdminPage() {
         <Tabs defaultValue="overview">
           <TabsList className="w-full justify-start overflow-x-auto">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="sports-api">Sports API</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="matches">Matches</TabsTrigger>
             <TabsTrigger value="partners">Partners</TabsTrigger>
@@ -91,6 +105,76 @@ function AdminPage() {
                 ))}
               </div>
               <p className="mt-2 text-[11px] text-muted-foreground">Light bars: new users · Solid bars: slips submitted</p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="sports-api" className="mt-4 space-y-4">
+            <div className="surface-card rounded-2xl p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+                <div>
+                  <h3 className="text-base font-bold flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-emerald-500" /> Free Sports API Management
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Live match fixtures, real scores, elapsed minute, team logos & sports market odds.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => fetchApiMatches()}
+                    disabled={isApiLoading}
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                  >
+                    <RotateCw className={cn("w-3.5 h-3.5", isApiLoading && "animate-spin text-primary")} />
+                    {isApiLoading ? "Syncing..." : "Sync API Now"}
+                  </Button>
+                  <Button
+                    onClick={() => setEnableLiveApi(!enableLiveApi)}
+                    variant={enableLiveApi ? "default" : "secondary"}
+                    size="sm"
+                  >
+                    {enableLiveApi ? "Live API Enabled" : "Live API Disabled"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-surface-2 border border-border">
+                  <div className="text-muted-foreground">Total API Fixtures</div>
+                  <div className="text-xl font-black text-foreground mt-1">{apiMatches.length}</div>
+                </div>
+                <div className="p-3 rounded-xl bg-surface-2 border border-border">
+                  <div className="text-muted-foreground">Live In-Play</div>
+                  <div className="text-xl font-black text-emerald-500 mt-1">{apiLiveCount}</div>
+                </div>
+                <div className="p-3 rounded-xl bg-surface-2 border border-border">
+                  <div className="text-muted-foreground">Active Sources</div>
+                  <div className="text-xl font-black text-foreground mt-1">{apiSourcesFetched} / {FREE_SPORTS_SOURCES.length}</div>
+                </div>
+                <div className="p-3 rounded-xl bg-surface-2 border border-border">
+                  <div className="text-muted-foreground">Last Sync Time</div>
+                  <div className="text-sm font-bold text-foreground mt-1">{lastApiUpdate || "Not synced yet"}</div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Connected Sports Data Feeds</h4>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {FREE_SPORTS_SOURCES.map((source) => (
+                    <div key={source.id} className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-surface-2/50 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: source.color }} />
+                        <span className="font-semibold truncate">{source.leagueName}</span>
+                      </div>
+                      <span className="text-[10px] font-mono uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.5 rounded font-bold">
+                        FREE API
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </TabsContent>
 
@@ -134,14 +218,14 @@ function AdminPage() {
           </TabsContent>
 
           <TabsContent value="matches" className="mt-4 space-y-2">
-            {matches.slice(0, 12).map((m) => (
+            {allMatches.slice(0, 16).map((m) => (
               <div key={m.id} className="surface-card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl p-4">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">
-                    {teamById(m.homeId).short} vs {teamById(m.awayId).short}
+                    {teamById(m.homeId).name} vs {teamById(m.awayId).name}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {leagueById(m.leagueId).name} · {m.markets.length} markets
+                    {leagueById(m.leagueId).name} · {m.markets.length} markets {m.id.startsWith("api-") ? "· Live API" : ""}
                   </p>
                 </div>
                 <Badge

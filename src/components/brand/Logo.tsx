@@ -1,29 +1,53 @@
-import logo from "@/assets/betrix-logo.png.asset.json";
-import mark from "@/assets/betrix-mark.png.asset.json";
 import { cn } from "@/lib/utils";
 
-/** Full BETRIX wordmark on a light plate so the original artwork stays untouched. */
-export function BetrixWordmark({ className }: { className?: string }) {
+interface LogoProps {
+  className?: string;
+  size?: "sm" | "md" | "lg";
+  showText?: boolean;
+}
+
+export function BetrixLogo({ className, size = "md", showText = true }: LogoProps) {
+  const sizes = {
+    sm: { img: "h-7 w-7", font: "text-base tracking-wider" },
+    md: { img: "h-9 w-9", font: "text-xl tracking-widest" },
+    lg: { img: "h-14 w-14", font: "text-3xl tracking-widest" },
+  };
+
+  const current = sizes[size];
+
   return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-lg bg-white px-2.5 py-1.5 shadow-sm",
-        className,
+    <span className={cn("inline-flex items-center gap-2.5 select-none group", className)}>
+      <img
+        src="/logo.jpg"
+        alt="BETRIX"
+        className={cn(
+          "rounded-full object-cover shrink-0 border border-[#F5C400]/50 shadow-[0_0_12px_rgba(245,196,0,0.4)] group-hover:scale-105 transition-transform duration-200",
+          current.img
+        )}
+      />
+      {showText && (
+        <span
+          className={cn(
+            "font-black text-[#F5C400] drop-shadow-[0_2px_6px_rgba(245,196,0,0.35)] uppercase",
+            current.font
+          )}
+        >
+          BETRIX
+        </span>
       )}
-    >
-      <img src={logo.url} alt="BETRIX" className="h-4 w-auto sm:h-5" />
     </span>
   );
 }
 
-/** Compact shield mark on a light plate. */
+export function BetrixWordmark({ className }: { className?: string }) {
+  return <BetrixLogo className={className} size="md" />;
+}
+
 export function BetrixMark({ className }: { className?: string }) {
-  return (
-    <span className={cn("inline-flex items-center justify-center rounded-xl bg-white p-1.5", className)}>
-      <img src={mark.url} alt="BETRIX" className="h-full w-full object-contain" />
-    </span>
-  );
+  return <BetrixLogo className={className} size="sm" showText={false} />;
 }
 
-export const betrixLogoUrl = logo.url;
-export const betrixMarkUrl = mark.url;
+export function PrimeStakersLogo({ className, size = "md" }: LogoProps) {
+  return <BetrixLogo className={className} size={size} />;
+}
+

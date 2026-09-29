@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { matchById, type Match } from "@/data/football";
+import { matchById, matches as seedMatches, type Match } from "@/data/football";
+import { fetchLiveSportsFixtures } from "@/services/sportsApi";
 
 export interface Selection {
   matchId: string;
@@ -29,19 +30,25 @@ export interface AppNotification {
 }
 
 export interface Profile {
-  name: string;
-  username: string;
-  email: string;
-  role: "USER" | "ADMIN" | "PARTNER";
-  favoriteLeague: string;
+  phone: string;
+  userId: string;
+  verified: boolean;
+  tier: string;
+  memberSince: string;
+  status: string;
+  nextUpdateDate: string;
 }
 
 interface BetrixState {
   profile: Profile;
-  points: number;
+  points: number; // alias for balance for backwards compatibility
+  balance: number;
   slip: Selection[];
   history: HistoryEntry[];
   notifications: AppNotification[];
+  isLoggedIn: boolean;
+  login: (phone?: string) => void;
+  logout: () => void;
   toggleSelection: (s: Selection) => void;
   isSelected: (matchId: string, marketId: string, optionId: string) => boolean;
   removeSelection: (matchId: string, marketId: string) => void;
@@ -51,10 +58,23 @@ interface BetrixState {
   markAllRead: () => void;
   markRead: (id: string) => void;
   totalMultiplier: number;
+  deposit: (amount: number) => void;
+  withdraw: (amount: number) => void;
+  // Sports API fields
+  apiMatches: Match[];
+  allMatches: Match[];
+  isApiLoading: boolean;
+  apiError: string | null;
+  lastApiUpdate: string | null;
+  apiLiveCount: number;
+  apiSourcesFetched: number;
+  enableLiveApi: boolean;
+  setEnableLiveApi: (enabled: boolean) => void;
+  fetchApiMatches: () => Promise<void>;
 }
 
 const Ctx = createContext<BetrixState | null>(null);
-const STORAGE_KEY = "betrix.state.v1";
+const STORAGE_KEY = "betrix.state.v2";
 
 const seedNotifications: AppNotification[] = [
   { id: "n1", title: "Prediction result available", body: "Slip BTX-4M18T settled — 3 of 4 correct.", time: "12m ago", read: false, kind: "result" },
@@ -71,15 +91,15 @@ function seedHistory(): HistoryEntry[] {
     {
       code: "BTX-4M18T",
       createdAt: new Date(Date.now() - 86400000).toISOString(),
-      stake: 500,
+      stake: 50,
       status: "WON",
-      payout: 1840,
+      payout: 184,
       selections: [mk("m19", "1x2", "Match Result", "home", "Home", 2.1), mk("m20", "ou", "Total Goals", "o25", "Over 2.5", 1.75)],
     },
     {
       code: "BTX-9QZ2A",
       createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-      stake: 300,
+      stake: 30,
       status: "LOST",
       payout: 0,
       selections: [mk("m21", "btts", "Both Teams To Score", "yes", "Yes", 1.72), mk("m22", "1x2", "Match Result", "away", "Away", 2.9)],
@@ -87,7 +107,7 @@ function seedHistory(): HistoryEntry[] {
     {
       code: "BTX-7K29Q",
       createdAt: new Date().toISOString(),
-      stake: 250,
+      stake: 25,
       status: "PENDING",
       payout: 0,
       selections: [mk("m5", "1x2", "Match Result", "home", "Home", 2.1), mk("m8", "ou", "Total Goals", "o15", "Over 1.5", 1.28), mk("m11", "btts", "Both Teams To Score", "yes", "Yes", 1.72)],
@@ -103,20 +123,24 @@ export function makeCode() {
 }
 
 export function BetrixProvider({ children }: { children: ReactNode }) {
-  const [points, setPoints] = useState(12450);
+  const [balance, setBalance] = useState(0.00);
+  const [phone, setPhone] = useState("0205795789");
   const [slip, setSlip] = useState<Selection[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>(seedHistory);
   const [notifications, setNotifications] = useState<AppNotification[]>(seedNotifications);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw);
-      if (typeof parsed.points === "number") setPoints(parsed.points);
+      if (typeof parsed.balance === "number") setBalance(parsed.balance);
+      if (typeof parsed.phone === "string") setPhone(parsed.phone);
       if (Array.isArray(parsed.slip)) setSlip(parsed.slip);
       if (Array.isArray(parsed.history)) setHistory(parsed.history);
       if (Array.isArray(parsed.notifications)) setNotifications(parsed.notifications);
+      if (typeof parsed.isLoggedIn === "boolean") setIsLoggedIn(parsed.isLoggedIn);
     } catch {
       /* ignore corrupted local state */
     }
@@ -124,11 +148,20 @@ export function BetrixProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ points, slip, history, notifications }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ balance, phone, slip, history, notifications, isLoggedIn }));
     } catch {
       /* storage unavailable */
     }
-  }, [points, slip, history, notifications]);
+  }, [balance, phone, slip, history, notifications, isLoggedIn]);
+
+  const login = useCallback((userPhone?: string) => {
+    setIsLoggedIn(true);
+    if (userPhone && userPhone.trim().length > 0) {
+      setPhone(userPhone.trim());
+    }
+  }, []);
+
+  const logout = useCallback(() => setIsLoggedIn(false), []);
 
   const toggleSelection = useCallback((s: Selection) => {
     setSlip((prev) => {
@@ -172,10 +205,10 @@ export function BetrixProvider({ children }: { children: ReactNode }) {
         payout: 0,
       };
       setHistory((h) => [entry, ...h]);
-      setPoints((p) => Math.max(0, p - stake));
+      setBalance((p) => Math.max(0, p - stake));
       setSlip([]);
       setNotifications((n) => [
-        { id: entry.code, title: "Prediction confirmed", body: `Slip ${entry.code} placed with ${entry.selections.length} selections.`, time: "just now", read: false, kind: "result" },
+        { id: entry.code, title: "Bet confirmed", body: `Slip ${entry.code} placed with ${entry.selections.length} selections.`, time: "just now", read: false, kind: "result" },
         ...n,
       ]);
       return entry;
@@ -186,18 +219,68 @@ export function BetrixProvider({ children }: { children: ReactNode }) {
   const markAllRead = useCallback(() => setNotifications((n) => n.map((x) => ({ ...x, read: true }))), []);
   const markRead = useCallback((id: string) => setNotifications((n) => n.map((x) => (x.id === id ? { ...x, read: true } : x))), []);
 
+  const deposit = useCallback((amount: number) => setBalance((prev) => prev + amount), []);
+  const withdraw = useCallback((amount: number) => setBalance((prev) => Math.max(0, prev - amount)), []);
+
+  // Sports API State Logic
+  const [apiMatches, setApiMatches] = useState<Match[]>([]);
+  const [isApiLoading, setIsApiLoading] = useState<boolean>(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [lastApiUpdate, setLastApiUpdate] = useState<string | null>(null);
+  const [apiLiveCount, setApiLiveCount] = useState<number>(0);
+  const [apiSourcesFetched, setApiSourcesFetched] = useState<number>(0);
+  const [enableLiveApi, setEnableLiveApi] = useState<boolean>(true);
+
+  const fetchApiMatches = useCallback(async () => {
+    if (!enableLiveApi) return;
+    setIsApiLoading(true);
+    setApiError(null);
+    try {
+      const res = await fetchLiveSportsFixtures();
+      setApiMatches(res.matches);
+      setApiLiveCount(res.liveCount);
+      setApiSourcesFetched(res.sourcesFetched);
+      setLastApiUpdate(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+    } catch (e: any) {
+      setApiError(e?.message || "Failed to load live sports fixtures");
+    } finally {
+      setIsApiLoading(false);
+    }
+  }, [enableLiveApi]);
+
+  useEffect(() => {
+    fetchApiMatches();
+    const interval = setInterval(() => {
+      fetchApiMatches();
+    }, 25000);
+    return () => clearInterval(interval);
+  }, [fetchApiMatches]);
+
+  const allMatches = useMemo(() => {
+    if (!enableLiveApi || apiMatches.length === 0) return seedMatches;
+    const apiIds = new Set(apiMatches.map((m) => m.id));
+    const uniqueSeed = seedMatches.filter((m) => !apiIds.has(m.id));
+    return [...apiMatches, ...uniqueSeed];
+  }, [apiMatches, enableLiveApi]);
+
   const value: BetrixState = {
     profile: {
-      name: "Daniel Mensah",
-      username: "@danmensah",
-      email: "daniel.mensah@betrix.app",
-      role: "USER",
-      favoriteLeague: "Premier League",
+      phone,
+      userId: "6939B805",
+      verified: true,
+      tier: "BRONZE I",
+      memberSince: "Sep 2026",
+      status: "Active",
+      nextUpdateDate: "01 Oct",
     },
-    points,
+    points: balance,
+    balance,
     slip,
     history,
     notifications,
+    isLoggedIn,
+    login,
+    logout,
     toggleSelection,
     isSelected,
     removeSelection,
@@ -207,6 +290,19 @@ export function BetrixProvider({ children }: { children: ReactNode }) {
     markAllRead,
     markRead,
     totalMultiplier,
+    deposit,
+    withdraw,
+    // Sports API exports
+    apiMatches,
+    allMatches,
+    isApiLoading,
+    apiError,
+    lastApiUpdate,
+    apiLiveCount,
+    apiSourcesFetched,
+    enableLiveApi,
+    setEnableLiveApi,
+    fetchApiMatches,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
@@ -222,4 +318,6 @@ export function selectionMatch(s: Selection): Match | undefined {
   return matchById(s.matchId);
 }
 
-export const formatPoints = (n: number) => n.toLocaleString("en-US");
+export const formatPoints = (n: number) => `GHS ${n.toFixed(2)}`;
+export const formatGHS = (n: number) => `GHS ${n.toFixed(2)}`;
+
