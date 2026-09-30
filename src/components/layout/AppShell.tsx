@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Bell,
   Gamepad2,
   Home as HomeIcon,
   Radio,
@@ -26,9 +25,8 @@ const mobileNav = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { slip, notifications, isLoggedIn, profile } = useBetrix();
+  const { slip, isLoggedIn, profile } = useBetrix();
   const [slipOpen, setSlipOpen] = useState(false);
-  const unread = notifications.filter((n) => !n.read).length;
 
   const isBare = pathname.startsWith("/admin");
   if (isBare) return <>{children}</>;
@@ -44,7 +42,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <BetrixWordmark />
           </Link>
 
-          {/* Right Controls: Search, Notifications, Login, Register */}
+          {/* Right Controls: Search, Login, Register */}
           <div className="flex items-center gap-3">
             <Link
               to="/search"
@@ -52,19 +50,6 @@ export function AppShell({ children }: { children: ReactNode }) {
               aria-label="Search"
             >
               <Search className="h-5 w-5" />
-            </Link>
-
-            <Link
-              to="/notifications"
-              className="p-1.5 text-gray-300 hover:text-white transition-colors relative shrink-0"
-              aria-label="Notifications"
-            >
-              <Bell className="h-5 w-5" />
-              {unread > 0 && (
-                <span className="absolute top-1 right-1 grid h-4 min-w-4 place-items-center rounded-full bg-[#F5C400] px-1 text-[9px] font-black text-black">
-                  {unread}
-                </span>
-              )}
             </Link>
 
             {!isLoggedIn ? (
